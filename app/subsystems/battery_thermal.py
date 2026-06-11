@@ -192,7 +192,25 @@ class BatteryThermalSubsystem(Subsystem):
     def override_scenario(self, vehicle_id: str, scenario: str,
                           scenario_t0: float = 30.0, seed: int = 0) -> None:
         """Public hook used by the case-study harness to pin a vehicle to a
-        specific failure scenario at a known onset time."""
+        specific failure scenario at a known onset time.
+
+        Parameters
+        ----------
+        vehicle_id : str
+            Identifier of the vehicle whose state will be overridden. If the
+            vehicle has not been seen before, it is first initialised via
+            :meth:`reset`.
+        scenario : str
+            One of ``nominal``, ``coolant_pump_degrading``, ``cell_imbalance``
+            or ``sensor_bias``. Other values are accepted but behave as
+            ``nominal`` because :meth:`_progress_fault` ignores them.
+        scenario_t0 : float, optional
+            Simulated-seconds offset after which the fault becomes active.
+            Defaults to 30 seconds, which keeps case-study runs short.
+        seed : int, optional
+            Seed for the per-vehicle RNG so the trace is reproducible. A value
+            of ``0`` (the default) means "use a stable seed of 0".
+        """
         if vehicle_id not in self._states:
             self.reset(vehicle_id, seed=seed or (hash(vehicle_id) & 0xFFFFFFFF))
         st = self._states[vehicle_id]

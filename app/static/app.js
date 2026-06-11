@@ -400,6 +400,8 @@ async function refresh() {
     if (state.activeTab === "vehicle") return renderVehicle();
     if (state.activeTab === "casestudy") {
       // Render once on first visit, then only on demand via the Run button.
+      // Plotly stores its parsed layout/data on the container as `_fullData`
+      // once a chart has been drawn — we use it as a "has-rendered" probe.
       const el = document.getElementById("cs-twin");
       if (el && !el._fullData) renderCaseStudy();
       return;

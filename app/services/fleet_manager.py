@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections import deque
@@ -14,6 +15,8 @@ from ..models.failure_predictor import FailureModel, model_registry
 from ..subsystems.base import Subsystem, TelemetrySample
 from .ab_testing import ab_router
 from .alerts import AlertCenter
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -152,6 +155,7 @@ class FleetManager:
             try:
                 self._tick(CONFIG.tick_seconds * 30.0)  # advance 30 sim-seconds per tick
             except Exception:  # pragma: no cover - keep simulator alive
+                logger.exception("Fleet tick failed; continuing")
                 continue
 
     def _tick(self, dt: float) -> None:

@@ -232,15 +232,15 @@ def _report_csv(report: Dict[str, Any]) -> Response:
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["section", "key", "value"])
-    def write(section: str, d: Dict[str, Any]):
+    def write_section(section: str, d: Dict[str, Any]):
         for k, v in d.items():
             if isinstance(v, dict):
-                write(f"{section}.{k}", v)
+                write_section(f"{section}.{k}", v)
             else:
                 w.writerow([section, k, json.dumps(v) if not isinstance(v, (int, float, str)) else v])
-    write("headline_metrics", report["headline_metrics"])
-    write("fleet_summary", report["fleet_summary"])
-    write("roi", report["roi"])
+    write_section("headline_metrics", report["headline_metrics"])
+    write_section("fleet_summary", report["fleet_summary"])
+    write_section("roi", report["roi"])
     return Response(
         buf.getvalue(),
         mimetype="text/csv",
