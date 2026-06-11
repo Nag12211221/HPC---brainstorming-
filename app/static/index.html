@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HPC Predictive Quality Platform</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⚙︎</span>
+      <div>
+        <h1>HPC Predictive Quality Platform</h1>
+        <p class="subtitle">Battery Thermal Management · POC for OEM management review</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="exec">Executive</button>
+      <button class="tab" data-tab="fleet">Fleet</button>
+      <button class="tab" data-tab="vehicle">Vehicle Drill-down</button>
+      <button class="tab" data-tab="casestudy">Case Study</button>
+      <button class="tab" data-tab="ops">Models &amp; A/B</button>
+      <button class="tab" data-tab="feedback">Feedback</button>
+      <button class="tab" data-tab="config">Config</button>
+    </nav>
+    <div class="actions">
+      <button id="export-json" class="ghost">Export JSON</button>
+      <button id="export-csv" class="primary">Export CSV</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- EXECUTIVE -->
+    <section class="view active" id="view-exec">
+      <div class="hero">
+        <div>
+          <h2>Why this subsystem?</h2>
+          <p>
+            <strong>Battery Thermal Management</strong> was selected for the POC
+            because (1) modern EV packs already emit rich, real-time CAN telemetry
+            (cell temps, coolant flow, current, voltage, SoC) that is easy to ingest,
+            and (2) thermal-related claims drive the highest single warranty cost
+            line in EV fleets — pack replacements run into five figures per vehicle.
+            A 30–40% reduction in field claims pays for the platform many times over.
+          </p>
+        </div>
+        <div class="kpi-grid" id="exec-kpis"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Fleet status</h3>
+          <div id="exec-status"></div>
+        </div>
+        <div class="card">
+          <h3>Projected annual savings</h3>
+          <div id="exec-savings"></div>
+          <p class="muted">Validation cycle reduction target: <b id="exec-cycle">35%</b></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Detection accuracy — before vs. after</h3>
+        <p class="muted">Baseline (legacy threshold rules) vs. HPC-trained platform.</p>
+        <div id="exec-accuracy" style="height:280px"></div>
+      </div>
+    </section>
+
+    <!-- FLEET -->
+    <section class="view" id="view-fleet">
+      <div class="card">
+        <div class="row spaced">
+          <h3>Fleet overview</h3>
+          <div>
+            <label class="muted">Filter:&nbsp;</label>
+            <select id="fleet-filter">
+              <option value="all">All</option>
+              <option value="critical">Critical only</option>
+              <option value="warn">Warn+</option>
+              <option value="watch">Watch+</option>
+            </select>
+            <button id="fleet-refresh" class="ghost">Refresh</button>
+          </div>
+        </div>
+        <div id="fleet-summary-row" class="kpi-grid small"></div>
+        <table class="data" id="fleet-table">
+          <thead>
+            <tr>
+              <th>VIN</th><th>Region</th><th>Yr</th><th>Status</th>
+              <th>Drift</th><th>Failure Prob.</th><th>95% CI</th>
+              <th>TTF (h)</th><th>Model</th><th>Scenario</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- VEHICLE DRILL-DOWN -->
+    <section class="view" id="view-vehicle">
+      <div class="card">
+        <div class="row spaced">
+          <h3 id="veh-title">Select a vehicle</h3>
+          <div>
+            <select id="veh-picker"></select>
+          </div>
+        </div>
+        <div class="kpi-grid small" id="veh-kpis"></div>
+        <div class="grid-2">
+          <div>
+            <h4>Digital twin: pack temperature (actual vs. HPC expected)</h4>
+            <div id="veh-twin-temp" style="height:280px"></div>
+          </div>
+          <div>
+            <h4>Digital twin: coolant ΔT</h4>
+            <div id="veh-twin-delta" style="height:280px"></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <h4>Drift score &amp; failure probability</h4>
+            <div id="veh-drift" style="height:260px"></div>
+          </div>
+          <div>
+            <h4>Load profile (current / SoC)</h4>
+            <div id="veh-load" style="height:260px"></div>
+          </div>
+        </div>
+        <div>
+          <h4>Active alerts for this vehicle</h4>
+          <ul id="veh-alerts" class="alerts"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- CASE STUDY -->
+    <section class="view" id="view-casestudy">
+      <div class="card">
+        <div class="row spaced">
+          <h3>Case study simulation</h3>
+          <div>
+            <select id="cs-scenario">
+              <option value="coolant_pump_degrading">Coolant pump degrading</option>
+              <option value="cell_imbalance">Cell imbalance</option>
+              <option value="sensor_bias">Sensor bias (hidden fault)</option>
+            </select>
+            <button id="cs-run" class="primary">Run</button>
+          </div>
+        </div>
+        <p id="cs-narrative" class="muted"></p>
+        <div class="grid-2">
+          <div>
+            <h4>Digital twin trace</h4>
+            <div id="cs-twin" style="height:280px"></div>
+          </div>
+          <div>
+            <h4>Failure probability — baseline vs. EWMA+</h4>
+            <div id="cs-prob" style="height:280px"></div>
+          </div>
+        </div>
+        <div id="cs-leadtime" class="kpi-grid small"></div>
+      </div>
+    </section>
+
+    <!-- MODELS / AB -->
+    <section class="view" id="view-ops">
+      <div class="card">
+        <h3>Model registry &amp; A/B testing</h3>
+        <table class="data" id="models-table">
+          <thead><tr><th>Version</th><th>Description</th><th>Active</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <h4>Traffic split</h4>
+        <div id="ab-split-editor" class="row"></div>
+        <button id="ab-apply" class="primary">Apply split &amp; reseed</button>
+        <h4>Arm performance</h4>
+        <table class="data" id="ab-report">
+          <thead><tr>
+            <th>Arm</th><th>Assigned</th><th>Alerts</th>
+            <th>TP</th><th>FP</th><th>Missed</th><th>Precision</th><th>Recall</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FEEDBACK -->
+    <section class="view" id="view-feedback">
+      <div class="card">
+        <h3>Customer feedback &amp; retraining</h3>
+        <form id="fb-form" class="form-grid">
+          <input name="vehicle_id" placeholder="VIN (optional)" />
+          <select name="label">
+            <option value="true_positive">True positive</option>
+            <option value="false_positive">False positive</option>
+            <option value="missed_failure">Missed failure</option>
+            <option value="comment">General comment</option>
+          </select>
+          <select name="severity">
+            <option value="info">Info</option>
+            <option value="warn">Warn</option>
+            <option value="critical">Critical</option>
+          </select>
+          <input name="submitted_by" placeholder="Submitted by" value="customer" />
+          <textarea name="comment" placeholder="What happened?" required></textarea>
+          <button class="primary" type="submit">Submit feedback</button>
+        </form>
+        <div class="row spaced">
+          <h4>Recent feedback</h4>
+          <button id="fb-retrain" class="ghost">Trigger retrain</button>
+        </div>
+        <table class="data" id="fb-table">
+          <thead><tr>
+            <th>ID</th><th>VIN</th><th>Label</th><th>Severity</th>
+            <th>Comment</th><th>Incorporated in</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+        <h4>Model version history</h4>
+        <ul id="retrain-history" class="alerts"></ul>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section class="view" id="view-config">
+      <div class="card">
+        <h3>Platform configuration</h3>
+        <p class="muted">
+          Edit thresholds, ROI assumptions and fleet size. Values are validated
+          server-side via <code>PATCH /api/config</code>.
+        </p>
+        <div id="config-editor" class="form-grid"></div>
+        <button id="config-save" class="primary">Save</button>
+        <button id="reseed" class="ghost">Reseed fleet</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>HPC Predictive Quality POC · service-oriented · API root: <code>/api</code></span>
+    <span id="last-update"></span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
