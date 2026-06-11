@@ -1,0 +1,2054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HPC Predictive Quality Platform — Standalone</title>
+<meta name="description" content="Offline single-file dashboard for the HPC Predictive Quality Platform. No server, no CDN, no dependencies." />
+<style>
+:root {
+  --bg: #0e1320; --panel: #161d2e; --panel-2: #1c2540; --line: #283250;
+  --text: #e6ebf5; --muted: #93a0bf; --accent: #4cc2ff;
+  --ok: #36c987; --watch: #d2b441; --warn: #ff9a3c; --crit: #ff5161;
+  --shadow: 0 4px 18px rgba(0,0,0,.35);
+}
+body.theme-light {
+  --bg: #f4f6fb; --panel: #ffffff; --panel-2: #f0f3fa; --line: #d9e0ec;
+  --text: #1a2238; --muted: #5b6781; --accent: #2078d4;
+  --ok: #1f9d63; --watch: #b88a14; --warn: #d3741b; --crit: #d6354a;
+  --shadow: 0 4px 18px rgba(15,30,70,.08);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+  background: var(--bg); color: var(--text); font-size: 14px; transition: background .2s, color .2s;
+}
+.topbar {
+  display: flex; align-items: center; gap: 18px; padding: 12px 24px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 50; flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 12px; min-width: 320px; }
+.brand h1 { margin: 0; font-size: 16px; }
+.brand .subtitle { margin: 2px 0 0; color: var(--muted); font-size: 11px; }
+.logo {
+  font-size: 22px; background: var(--accent); color: #02101a;
+  width: 36px; height: 36px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center; font-weight: bold;
+}
+.tabs { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+.tab {
+  background: transparent; color: var(--muted); border: 1px solid transparent;
+  padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--panel-2); color: var(--text); border-color: var(--line); }
+.actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+button.primary, button.ghost, button.danger {
+  border-radius: 6px; padding: 7px 12px; cursor: pointer; font-size: 13px;
+  border: 1px solid var(--line); background: transparent; color: var(--text);
+  transition: filter .15s, background .15s;
+}
+button.primary { background: var(--accent); color: #02101a; border-color: var(--accent); font-weight: 600; }
+button.danger  { background: var(--crit); color: #fff; border-color: var(--crit); }
+button.ghost:hover { background: var(--panel-2); }
+button.primary:hover, button.danger:hover { filter: brightness(1.1); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+
+main { padding: 22px 24px; max-width: 1600px; margin: 0 auto; }
+.view { display: none; }
+.view.active { display: block; }
+
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow);
+}
+.card h3 { margin: 0 0 8px; font-size: 15px; }
+.card h4 { margin: 16px 0 6px; font-size: 12px; color: var(--muted);
+           text-transform: uppercase; letter-spacing: .04em; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 1100px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row.spaced { justify-content: space-between; }
+.muted { color: var(--muted); font-size: 12px; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px; }
+.kpi-grid.small { grid-template-columns: repeat(6, 1fr); }
+@media (max-width: 1100px) { .kpi-grid, .kpi-grid.small { grid-template-columns: repeat(2, 1fr); } }
+.kpi {
+  background: var(--panel-2); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line);
+}
+.kpi .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.kpi .sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.kpi.trend-up   .value::after  { content: " ▲"; color: var(--crit); font-size: 12px; }
+.kpi.trend-down .value::after  { content: " ▼"; color: var(--ok);   font-size: 12px; }
+.kpi .spark { margin-top: 6px; height: 26px; }
+
+.hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+.hero > div { background: var(--panel); border: 1px solid var(--line);
+              border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }
+@media (max-width: 1100px) { .hero { grid-template-columns: 1fr; } }
+
+table.data { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+table.data th, table.data td {
+  text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line);
+}
+table.data th { color: var(--muted); font-weight: 600; font-size: 11px;
+                text-transform: uppercase; letter-spacing: .04em; cursor: pointer; user-select: none; }
+table.data th.sort-asc::after  { content: " ▲"; font-size: 9px; }
+table.data th.sort-desc::after { content: " ▼"; font-size: 9px; }
+table.data tr:hover { background: var(--panel-2); }
+table.data tr.row-critical { background: rgba(255,81,97,0.08); }
+table.data tr.row-warn { background: rgba(255,154,60,0.07); }
+table.data tr.selected { outline: 2px solid var(--accent); }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+}
+.badge.healthy  { background: rgba(54,201,135,0.18); color: var(--ok); }
+.badge.watch    { background: rgba(210,180,65,0.18); color: var(--watch); }
+.badge.warn     { background: rgba(255,154,60,0.18); color: var(--warn); }
+.badge.critical { background: rgba(255,81,97,0.20); color: var(--crit); }
+.badge.info     { background: rgba(76,194,255,0.18); color: var(--accent); }
+
+.alerts { list-style: none; padding: 0; margin: 0; }
+.alerts li {
+  background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--muted);
+  padding: 10px 12px; margin-bottom: 8px; border-radius: 6px;
+  display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;
+}
+.alerts li.critical { border-left-color: var(--crit); }
+.alerts li.warn { border-left-color: var(--warn); }
+.alerts li .meta { color: var(--muted); font-size: 11px; }
+.alerts li button { background: transparent; color: var(--accent); border: none; cursor: pointer; }
+
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
+.form-grid input, .form-grid select, .form-grid textarea {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 10px; font-size: 13px;
+}
+.form-grid textarea { grid-column: 1 / -1; min-height: 70px; resize: vertical; }
+.form-grid button { grid-column: 1 / -1; }
+.form-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.form-grid label > input, .form-grid label > select { color: var(--text); }
+
+.footer {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  padding: 14px 24px; color: var(--muted); font-size: 12px;
+  border-top: 1px solid var(--line); margin-top: 16px;
+}
+
+code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+select, input { background: var(--panel-2); color: var(--text);
+                border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
+input[type=range] { padding: 0; }
+
+/* Sim controls */
+.simctl { display: flex; gap: 4px; align-items: center; padding: 4px 8px;
+          background: var(--panel-2); border-radius: 6px; border: 1px solid var(--line); }
+.simctl .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.simctl.running .dot { background: var(--ok); box-shadow: 0 0 6px var(--ok); animation: pulse 1.6s infinite; }
+.simctl button { padding: 4px 8px; font-size: 12px; }
+@keyframes pulse { 0%,100% { opacity: .6; } 50% { opacity: 1; } }
+
+/* Toast */
+#toasts { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex;
+          flex-direction: column; gap: 8px; max-width: 360px; }
+.toast {
+  background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: 8px; padding: 12px 14px; box-shadow: var(--shadow);
+  animation: slideIn .25s ease-out;
+}
+.toast.critical { border-left-color: var(--crit); }
+.toast.warn { border-left-color: var(--warn); }
+.toast.ok { border-left-color: var(--ok); }
+.toast .t-title { font-weight: 600; margin-bottom: 2px; }
+.toast .t-body { font-size: 12px; color: var(--muted); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* SVG charts */
+svg.chart { width: 100%; height: 100%; display: block; }
+svg.chart .axis line, svg.chart .axis path { stroke: var(--line); fill: none; }
+svg.chart .axis text { fill: var(--muted); font-size: 10px; }
+svg.chart .grid line { stroke: var(--line); stroke-dasharray: 2 3; opacity: .5; }
+svg.chart .legend text { fill: var(--text); font-size: 11px; }
+svg.chart .series-line { fill: none; stroke-width: 2; }
+svg.chart .series-area { opacity: 0.12; }
+svg.chart .dashed { stroke-dasharray: 5 4; }
+svg.chart .ref-line { stroke: var(--crit); stroke-dasharray: 4 4; }
+svg.chart .tip-line { stroke: var(--muted); stroke-dasharray: 2 3; pointer-events: none; }
+svg.chart text.title { fill: var(--text); font-size: 12px; }
+.chart-wrap { position: relative; }
+.chart-tip {
+  position: absolute; pointer-events: none; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px;
+  font-size: 11px; color: var(--text); box-shadow: var(--shadow); display: none; z-index: 5;
+}
+
+/* TTF buckets */
+.bucket { display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+          border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); margin-bottom: 8px; }
+.bucket .bname { min-width: 130px; font-weight: 600; }
+.bucket .bbar { flex: 1; height: 14px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.bucket .bbar > div { height: 100%; background: var(--accent); }
+.bucket.critical .bbar > div { background: var(--crit); }
+.bucket.warn .bbar > div { background: var(--warn); }
+.bucket.watch .bbar > div { background: var(--watch); }
+.bucket .bcount { min-width: 50px; text-align: right; }
+.bucket .blist { flex-basis: 100%; font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* Compare */
+.compare-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.compare-chip { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px;
+                padding: 3px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+.compare-chip button { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 13px; }
+
+/* Print */
+@media print {
+  .topbar, .actions, button, #toasts, .simctl, footer { display: none !important; }
+  .view { display: block !important; page-break-after: always; }
+  .card { box-shadow: none; border: 1px solid #bbb; }
+  body { background: white; color: black; }
+}
+
+</style>
+</head>
+<body>
+<div id="toasts" aria-live="polite"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">HQ</span>
+    <div>
+      <h1>HPC Predictive Quality Platform</h1>
+      <div class="subtitle">Standalone HTML · runs offline · no external dependencies</div>
+    </div>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="executive">Executive</button>
+    <button class="tab" data-tab="fleet">Fleet</button>
+    <button class="tab" data-tab="drilldown">Vehicle</button>
+    <button class="tab" data-tab="maintenance">Maintenance</button>
+    <button class="tab" data-tab="case">Case Study</button>
+    <button class="tab" data-tab="models">Models &amp; A/B</button>
+    <button class="tab" data-tab="feedback">Feedback</button>
+    <button class="tab" data-tab="config">Config</button>
+  </nav>
+
+  <div class="actions">
+    <div class="simctl" id="sim-status" title="Simulation controls">
+      <span class="dot"></span>
+      <button id="btn-play" class="ghost" title="Play / pause (Space)">⏸</button>
+      <button id="btn-step" class="ghost" title="Step one tick">⏭</button>
+      <select id="sim-speed" title="Simulation speed">
+        <option value="1">1×</option>
+        <option value="5">5×</option>
+        <option value="15">15×</option>
+        <option value="30">30×</option>
+      </select>
+      <span id="sim-tick-counter" class="muted" style="padding:0 6px">tick 0</span>
+    </div>
+    <button id="btn-theme" class="ghost" title="Toggle theme">☀️</button>
+    <button id="btn-share" class="ghost" title="Copy share link">🔗</button>
+    <button id="btn-export-json" class="ghost" title="Export full snapshot as JSON">⬇ JSON</button>
+    <button id="btn-export-csv" class="ghost" title="Export fleet table as CSV">⬇ CSV</button>
+    <button id="btn-import" class="ghost" title="Import snapshot">⬆ Import</button>
+    <input type="file" id="file-import" accept="application/json" style="display:none" />
+    <button id="btn-print" class="ghost" title="Print report">🖨</button>
+    <button id="btn-reset" class="ghost" title="Reset all state">⟲</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============== EXECUTIVE ============== -->
+  <section id="view-executive" class="view active" role="tabpanel">
+    <div class="card">
+      <div class="row spaced">
+        <h3>Executive overview</h3>
+        <span class="muted">Live KPIs · auto-refresh while simulation runs</span>
+      </div>
+      <div id="exec-kpis" class="kpi-grid small"></div>
+    </div>
+
+    <div class="hero">
+      <div>
+        <h3>Fleet status distribution</h3>
+        <div class="chart-wrap" id="exec-donut" style="height:240px"></div>
+      </div>
+      <div>
+        <h3>Active alerts</h3>
+        <ul id="exec-alerts" class="alerts"></ul>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Regional rollup</h3>
+        <table id="exec-regions" class="data"></table>
+      </div>
+      <div class="card">
+        <h3>ROI projection</h3>
+        <div id="exec-roi"></div>
+        <h4>Recovery lift (slider)</h4>
+        <div class="row" style="gap:14px">
+          <input id="roi-lift" type="range" min="0" max="0.35" step="0.01" value="0.23" style="flex:1" />
+          <strong id="roi-lift-val" style="min-width:60px;text-align:right">23.0%</strong>
+        </div>
+        <p class="muted" style="margin-top:8px">Slide to model the impact of additional precision improvements
+          on warranty claim recovery and projected annual savings.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== FLEET ============== -->
+  <section id="view-fleet" class="view" role="tabpanel">
+    <div class="card">
+      <div class="row spaced">
+        <h3>Fleet table</h3>
+        <div class="row">
+          <input id="fleet-search" placeholder="search vid / region / status / scenario" style="width:280px" />
+          <span class="muted" id="fleet-count">0 / 0</span>
+        </div>
+      </div>
+      <p class="muted">Click a row to drill down · right-click to add/remove from comparison overlay (max 5).</p>
+      <table id="fleet-table" class="data"></table>
+    </div>
+
+    <div class="card">
+      <h3>Comparison overlay — max cell temperature</h3>
+      <div id="fleet-compare-chips" class="compare-list"></div>
+      <div class="chart-wrap" id="fleet-compare-chart" style="height:240px"></div>
+    </div>
+  </section>
+
+  <!-- ============== DRILL DOWN ============== -->
+  <section id="view-drilldown" class="view" role="tabpanel">
+    <div class="card">
+      <div class="row spaced">
+        <div class="row">
+          <label class="muted">Vehicle:
+            <select id="drill-vid" style="margin-left:6px"></select>
+          </label>
+          <span id="drill-status" class="badge healthy">HEALTHY</span>
+        </div>
+        <div class="row">
+          <select id="drill-inject-scenario">
+            <option value="nominal">nominal</option>
+            <option value="coolant_pump_degrading">coolant pump degrading</option>
+            <option value="cell_imbalance">cell imbalance</option>
+            <option value="sensor_bias">sensor bias</option>
+          </select>
+          <button id="drill-inject" class="ghost">Inject fault</button>
+          <button id="drill-reset" class="danger">Reset vehicle</button>
+        </div>
+      </div>
+      <div id="drill-summary"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Temperature actual vs. expected</h3>
+        <div class="chart-wrap" id="drill-temp" style="height:240px"></div>
+      </div>
+      <div class="card">
+        <h3>Coolant ΔT &amp; flow</h3>
+        <div class="chart-wrap" id="drill-cool" style="height:240px"></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Risk &amp; drift trajectory</h3>
+        <div class="chart-wrap" id="drill-risk" style="height:240px"></div>
+      </div>
+      <div class="card">
+        <h3>Drift contributions</h3>
+        <div class="chart-wrap" id="drill-contrib" style="height:220px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== MAINTENANCE ============== -->
+  <section id="view-maintenance" class="view" role="tabpanel">
+    <div class="card">
+      <h3>Maintenance backlog by time-to-failure</h3>
+      <p class="muted">Fleet grouped by predicted TTF buckets. Use to prioritize service slots.</p>
+      <div id="maint-buckets"></div>
+    </div>
+    <div class="card">
+      <h3>Suggested service schedule (≤ 36h TTF)</h3>
+      <table id="maint-schedule" class="data"></table>
+    </div>
+  </section>
+
+  <!-- ============== CASE STUDY ============== -->
+  <section id="view-case" class="view" role="tabpanel">
+    <div class="card">
+      <div class="row spaced">
+        <h3>baseline_v1 vs ewma_plus_v2 — lead-time analysis</h3>
+        <div class="row">
+          <label class="muted">Scenario:
+            <select id="case-scenario" style="margin-left:6px">
+              <option value="coolant_pump_degrading">coolant pump degrading</option>
+              <option value="cell_imbalance">cell imbalance</option>
+              <option value="sensor_bias">sensor bias</option>
+            </select>
+          </label>
+          <label class="muted">Seed:
+            <input id="case-seed" type="number" value="7" style="width:80px;margin-left:6px" />
+          </label>
+        </div>
+      </div>
+      <p class="muted">Identical telemetry replayed through both models. The lead value is how many seconds the
+        alert fired before the actual physical breach (max cell exceeds expected by 6°C).</p>
+      <div id="case-summary"></div>
+      <div class="chart-wrap" id="case-chart" style="height:280px;margin-top:14px"></div>
+    </div>
+  </section>
+
+  <!-- ============== MODELS ============== -->
+  <section id="view-models" class="view" role="tabpanel">
+    <div class="grid-2">
+      <div class="card">
+        <h3>Per-model performance (running)</h3>
+        <table id="models-table" class="data"></table>
+      </div>
+      <div class="card">
+        <h3>Average failure probability per model</h3>
+        <div class="chart-wrap" id="models-bars" style="height:200px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>A/B traffic weights</h3>
+      <p class="muted">Deterministic per-vehicle hash bucketing. Adjust weights to shift live routing.</p>
+      <div id="ab-weights" class="form-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============== FEEDBACK ============== -->
+  <section id="view-feedback" class="view" role="tabpanel">
+    <div class="card">
+      <h3>Operator feedback summary</h3>
+      <div id="fb-summary"></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Submit feedback</h3>
+        <form id="fb-form" class="form-grid">
+          <label><span>Vehicle</span><select id="fb-vid" required></select></label>
+          <label><span>Outcome</span>
+            <select id="fb-outcome" required>
+              <option value="true_positive">True positive (genuine fault)</option>
+              <option value="false_positive">False positive (no fault found)</option>
+              <option value="false_negative">False negative (missed fault)</option>
+            </select>
+          </label>
+          <textarea id="fb-notes" placeholder="Investigator notes…" maxlength="500"></textarea>
+          <button class="primary" type="submit">Record feedback</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Recent feedback</h3>
+        <table id="fb-table" class="data"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== CONFIG ============== -->
+  <section id="view-config" class="view" role="tabpanel">
+    <div class="card">
+      <h3>Runtime configuration</h3>
+      <p class="muted">All settings persist to <code>localStorage</code>. Use Reset to clear.</p>
+      <div id="cfg-form" class="form-grid"></div>
+    </div>
+    <div class="card">
+      <h3>About this file</h3>
+      <p>This is a fully <strong>standalone, offline</strong> build of the HPC Predictive Quality
+        Platform. The simulation, drift detector, dual failure models, ROI calculator, alert center
+        and case study all run in your browser — there is no server, no CDN, and no network call.</p>
+      <ul class="muted">
+        <li>Just open <code>dashboard.html</code> in any modern browser. Works from a USB stick or email attachment.</li>
+        <li>Share state via <strong>🔗 Share link</strong> (config + selection encoded in the URL hash).</li>
+        <li>Export full snapshot as JSON or fleet table as CSV. Print to PDF for hand-off reports.</li>
+        <li>State persists between sessions in <code>localStorage</code>.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span>HPC Predictive Quality Platform · standalone build</span>
+  <span>All computation runs locally in your browser. No external dependencies.</span>
+</footer>
+
+<script>
+/* =========================================================================
+ * HPC Predictive Quality Platform — Standalone Browser Runtime
+ * All in-browser; no network, no external dependencies.
+ * ========================================================================= */
+'use strict';
+
+/* ---------- Utilities ---------- */
+const NS = 'http://www.w3.org/2000/svg';
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const fmt   = (v, d = 2) => (v === null || v === undefined || Number.isNaN(v)) ? '—' : Number(v).toFixed(d);
+const fmtPct= (v, d = 1) => (v === null || v === undefined || Number.isNaN(v)) ? '—' : (Number(v) * 100).toFixed(d) + '%';
+const fmtUSD= (v) => '$' + Math.round(v).toLocaleString();
+const nowIso= () => new Date().toISOString();
+
+function el(tag, attrs = {}, children = []) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined) e.setAttribute(k, v);
+  }
+  for (const c of (Array.isArray(children) ? children : [children])) {
+    if (c == null) continue;
+    e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+function sNode(tag, attrs = {}) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined) e.setAttribute(k, v);
+  return e;
+}
+
+/* ---------- Seeded RNG (mulberry32) + Gaussian ---------- */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function() {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gauss(rng, mu = 0, sigma = 1) {
+  const u1 = Math.max(1e-9, rng()), u2 = rng();
+  return mu + sigma * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+/* ---------- Storage ---------- */
+const Storage = {
+  KEY: 'hpc-pq-state-v1',
+  load() {
+    try { const s = localStorage.getItem(this.KEY); return s ? JSON.parse(s) : null; }
+    catch { return null; }
+  },
+  save(state) {
+    try { localStorage.setItem(this.KEY, JSON.stringify(state)); } catch {}
+  },
+  clear() { try { localStorage.removeItem(this.KEY); } catch {} },
+};
+
+/* ---------- Configuration ---------- */
+const DEFAULT_CONFIG = {
+  fleet_size: 25,
+  vehicle_prefix: 'VHL',
+  drift_alpha: 0.15,
+  drift_warn: 0.45,
+  drift_critical: 0.75,
+  failure_warn_prob: 0.35,
+  failure_critical_prob: 0.65,
+  inference_window_seconds: 30,
+  tick_seconds: 1,
+  scenario_weights: {
+    nominal: 0.55,
+    coolant_pump_degrading: 0.18,
+    cell_imbalance: 0.15,
+    sensor_bias: 0.12,
+  },
+  ab_weights: { baseline_v1: 0.5, ewma_plus_v2: 0.5 },
+  fleet_warranty_baseline_per_1000: 38,
+  warranty_unit_cost_usd: 4200,
+  validation_recovery_target: 0.85,
+  validation_cost_savings_usd: 1_250_000,
+  regions: ['NA-East', 'NA-West', 'EMEA', 'APAC'],
+  random_seed: 42,
+};
+
+/* ---------- Battery-Thermal Subsystem ---------- */
+class BatteryThermalSubsystem {
+  constructor(cfg, rng) {
+    this.cfg = cfg;
+    this.rng = rng;
+    this.vehicles = {};
+  }
+  initVehicle(vid, region) {
+    const scenario = this._sampleScenario();
+    this.vehicles[vid] = {
+      vid, region,
+      elapsed: 0,
+      scenario, scenario_t0: 0,
+      pump_health: 1.0, cell_imbalance: 0.0, sensor_bias: 0.0,
+      history: [],
+      faultInjected: null,
+    };
+    return this.vehicles[vid];
+  }
+  _sampleScenario() {
+    const w = this.cfg.scenario_weights;
+    const r = this.rng();
+    let acc = 0;
+    for (const [k, v] of Object.entries(w)) { acc += v; if (r < acc) return k; }
+    return 'nominal';
+  }
+  reset(vid) {
+    const v = this.vehicles[vid]; if (!v) return;
+    const region = v.region;
+    delete this.vehicles[vid];
+    this.initVehicle(vid, region);
+  }
+  injectFault(vid, scenario) {
+    const v = this.vehicles[vid]; if (!v) return;
+    v.scenario = scenario; v.scenario_t0 = v.elapsed;
+    v.pump_health = 1.0; v.cell_imbalance = 0.0; v.sensor_bias = 0.0;
+    v.faultInjected = { scenario, at: nowIso() };
+  }
+  step(vid, dt = 1.0) {
+    const v = this.vehicles[vid];
+    if (!v) throw new Error('Unknown vid: ' + vid);
+    v.elapsed += dt;
+    this._progressFault(v);
+
+    const t = v.elapsed;
+    // sinusoidal current load, 0..250 A
+    const current = 125 + 125 * Math.sin(t / 18.0);
+    const heat_in = (current * current) * 0.00018 * (1 + 0.4 * (1 - v.pump_health));
+    const coolant_flow = clamp(0.95 - 0.55 * (1 - v.pump_health) + gauss(this.rng, 0, 0.01), 0.25, 1.05);
+    const coolant_delta_true = (heat_in / Math.max(0.2, coolant_flow)) * 0.18;
+
+    const pack_temp_true = 32 + coolant_delta_true * 4.5 + gauss(this.rng, 0, 0.20);
+    const cell_spread    = 1.2 + v.cell_imbalance * 7.5;
+    const max_cell_true  = pack_temp_true + cell_spread + gauss(this.rng, 0, 0.18);
+    // Expected (model) values – no scenario degradation, just nominal dynamics
+    const heat_nom = (current * current) * 0.00018;
+    const flow_nom = 0.95;
+    const coolant_delta_exp = (heat_nom / flow_nom) * 0.18;
+    const pack_temp_exp = 32 + coolant_delta_exp * 4.5;
+    const max_cell_exp  = pack_temp_exp + 1.2;
+    // Sensor bias hides truth from the reported telemetry
+    const pack_temp_obs = pack_temp_true - v.sensor_bias * 2.5;
+    const max_cell_obs  = max_cell_true  - v.sensor_bias * 2.5;
+    const coolant_delta_obs = coolant_delta_true;
+    const coolant_flow_lpm  = coolant_flow * 22.0;
+    const coolant_flow_exp  = 0.95 * 22.0;
+
+    const sample = {
+      t,
+      pack_temp_c: pack_temp_obs,
+      pack_temp_exp,
+      max_cell_temp_c: max_cell_obs,
+      max_cell_exp,
+      coolant_delta_c: coolant_delta_obs,
+      coolant_delta_exp,
+      coolant_flow_lpm,
+      coolant_flow_exp,
+      current_a: current,
+      pack_temp_true, max_cell_true,
+    };
+    v.history.push(sample);
+    if (v.history.length > 600) v.history.shift();
+    return {
+      sample,
+      actual: { pack_temp_c: pack_temp_obs, max_cell_temp_c: max_cell_obs,
+                coolant_delta_c: coolant_delta_obs, coolant_flow_lpm },
+      expected: { pack_temp_c: pack_temp_exp, max_cell_temp_c: max_cell_exp,
+                  coolant_delta_c: coolant_delta_exp, coolant_flow_lpm: coolant_flow_exp },
+      fault_active: v.scenario !== 'nominal',
+      scenario: v.scenario,
+    };
+  }
+  _progressFault(v) {
+    if (v.scenario === 'nominal') return;
+    const minutes = (v.elapsed - v.scenario_t0) / 60.0;
+    const ramp = clamp(minutes / 8.0, 0, 1);
+    if (v.scenario === 'coolant_pump_degrading') v.pump_health = clamp(1 - 0.65 * ramp, 0.2, 1);
+    if (v.scenario === 'cell_imbalance')         v.cell_imbalance = clamp(0.75 * ramp, 0, 0.9);
+    if (v.scenario === 'sensor_bias')            v.sensor_bias    = clamp(0.6 * ramp, 0, 0.7);
+  }
+  extractFeatures(vid, windowSec) {
+    const v = this.vehicles[vid]; if (!v) return null;
+    const need = Math.max(2, Math.floor(windowSec));
+    const hist = v.history.slice(-need);
+    if (hist.length < 5) return null;
+    const channels = ['pack_temp_c', 'max_cell_temp_c', 'coolant_delta_c', 'coolant_flow_lpm'];
+    const expKey = (c) => c === 'pack_temp_c' ? 'pack_temp_exp'
+                       : c === 'max_cell_temp_c' ? 'max_cell_exp'
+                       : c === 'coolant_delta_c' ? 'coolant_delta_exp'
+                       : 'coolant_flow_exp';
+    const out = {};
+    for (const c of channels) {
+      const resid = hist.map(s => s[c] - s[expKey(c)]);
+      const mean = resid.reduce((a, b) => a + b, 0) / resid.length;
+      // simple slope via least squares
+      const n = resid.length;
+      const xm = (n - 1) / 2;
+      let num = 0, den = 0;
+      for (let i = 0; i < n; i++) { num += (i - xm) * (resid[i] - mean); den += (i - xm) ** 2; }
+      const slope = den > 0 ? num / den : 0;
+      out[c + '_residual_mean']  = mean;
+      out[c + '_residual_slope'] = slope;
+    }
+    return out;
+  }
+}
+
+/* ---------- EWMA Drift Detector ---------- */
+class DriftDetector {
+  constructor(alpha = 0.15) { this.alpha = alpha; this.state = {}; }
+  update(features) {
+    if (!features) return { score: 0, contributions: {} };
+    let score = 0; const contrib = {};
+    for (const [k, v] of Object.entries(features)) {
+      let s = this.state[k]; if (!s) s = this.state[k] = { mean: 0, var: 1, n: 0 };
+      const delta = v - s.mean;
+      s.mean += this.alpha * delta;
+      s.var   = (1 - this.alpha) * (s.var + this.alpha * delta * delta);
+      s.n++;
+      if (k.endsWith('_residual_mean'))  { const c = clamp(Math.abs(v) / 3.0, 0, 2.5); contrib[k] = c; score += c; }
+      if (k.endsWith('_residual_slope')) { const c = clamp(Math.abs(v) * 4.0, 0, 2.5); contrib[k] = c; score += c; }
+    }
+    const norm = Math.max(1, Object.keys(contrib).length);
+    return { score: score / norm, contributions: contrib };
+  }
+  reset() { this.state = {}; }
+}
+
+/* ---------- Failure Predictor (logistic) ---------- */
+const sigmoid = (z) => 1 / (1 + Math.exp(-clamp(z, -30, 30)));
+
+class FailureModel {
+  constructor(version, weights, bias, sigma, useSlopes) {
+    this.version = version; this.weights = weights; this.bias = bias; this.sigma = sigma; this.useSlopes = useSlopes;
+  }
+  predict(features, driftScore) {
+    if (!features) {
+      const p = sigmoid(this.bias + 2.0 * driftScore);
+      return { probability: p, ci_low: clamp(p - this.sigma, 0, 1), ci_high: clamp(p + this.sigma, 0, 1),
+               logit: 0, time_to_failure_hours: 72 * Math.pow(1 - p, 2), model_version: this.version };
+    }
+    let z = this.bias + (this.weights.drift || 0) * driftScore;
+    for (const [k, w] of Object.entries(this.weights)) {
+      if (k === 'drift') continue;
+      if (!this.useSlopes && k.endsWith('_residual_slope')) continue;
+      const v = features[k] || 0;
+      z += w * v;
+    }
+    const p = sigmoid(z);
+    let slopeSig = 0;
+    if (this.useSlopes) {
+      const slopes = Object.entries(features).filter(([k]) => k.endsWith('_residual_slope'));
+      const m = slopes.reduce((a, [, v]) => a + Math.abs(v), 0) / Math.max(1, slopes.length);
+      slopeSig = clamp(m * 6, 0, 1);
+    }
+    const baseTtf = Math.max(2, 72 * Math.pow(1 - p, 2));
+    const ttf = baseTtf * (1 - 0.5 * slopeSig);
+    return {
+      probability: p,
+      ci_low: clamp(p - this.sigma, 0, 1),
+      ci_high: clamp(p + this.sigma, 0, 1),
+      logit: z,
+      time_to_failure_hours: ttf,
+      model_version: this.version,
+    };
+  }
+}
+
+const FEATURE_NAMES = [
+  'pack_temp_c_residual_mean', 'max_cell_temp_c_residual_mean',
+  'coolant_delta_c_residual_mean', 'coolant_flow_lpm_residual_mean',
+  'pack_temp_c_residual_slope', 'max_cell_temp_c_residual_slope',
+  'coolant_delta_c_residual_slope', 'coolant_flow_lpm_residual_slope',
+];
+
+const ModelRegistry = {
+  baseline_v1: new FailureModel('baseline_v1', {
+    drift: 2.2,
+    pack_temp_c_residual_mean: 0.45,
+    max_cell_temp_c_residual_mean: 0.55,
+    coolant_delta_c_residual_mean: 0.30,
+    coolant_flow_lpm_residual_mean: -0.18,
+  }, -2.5, 0.12, false),
+  ewma_plus_v2: new FailureModel('ewma_plus_v2', {
+    drift: 2.6,
+    pack_temp_c_residual_mean: 0.50,
+    max_cell_temp_c_residual_mean: 0.60,
+    coolant_delta_c_residual_mean: 0.32,
+    coolant_flow_lpm_residual_mean: -0.20,
+    pack_temp_c_residual_slope: 0.65,
+    max_cell_temp_c_residual_slope: 0.72,
+    coolant_delta_c_residual_slope: 0.40,
+    coolant_flow_lpm_residual_slope: -0.25,
+  }, -2.9, 0.07, true),
+};
+
+/* ---------- A/B Router (deterministic by vid hash) ---------- */
+class ABRouter {
+  constructor(weights) { this.weights = weights; }
+  pick(vid) {
+    let h = 0; for (let i = 0; i < vid.length; i++) { h = (h * 31 + vid.charCodeAt(i)) | 0; }
+    const r = ((h >>> 0) % 10000) / 10000;
+    let acc = 0;
+    for (const [k, w] of Object.entries(this.weights)) { acc += w; if (r < acc) return k; }
+    return Object.keys(this.weights)[0];
+  }
+}
+
+/* ---------- Status helpers ---------- */
+function statusFor(prob, drift, cfg) {
+  if (prob >= cfg.failure_critical_prob || drift >= cfg.drift_critical) return 'critical';
+  if (prob >= cfg.failure_warn_prob     || drift >= cfg.drift_warn)     return 'warn';
+  if (prob >= 0.15                       || drift >= 0.20)              return 'watch';
+  return 'healthy';
+}
+
+/* ---------- Alert Center ---------- */
+class AlertCenter {
+  constructor(cfg) { this.cfg = cfg; this.active = {}; this.history = []; }
+  evaluate(vid, snap) {
+    const sev = statusFor(snap.probability, snap.drift_score, this.cfg);
+    if (sev === 'healthy' || sev === 'watch') {
+      // clear prior
+      const key = (s) => vid + '|' + s;
+      ['warn', 'critical'].forEach(s => {
+        if (this.active[key(s)]) { this.active[key(s)].cleared_at = nowIso(); delete this.active[key(s)]; }
+      });
+      return null;
+    }
+    const key = vid + '|' + sev;
+    if (this.active[key]) { this.active[key].last_seen = nowIso(); return null; }
+    const a = {
+      id: 'A' + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36),
+      vid, severity: sev, probability: snap.probability, drift_score: snap.drift_score,
+      scenario: snap.scenario, model_version: snap.model_version,
+      ttf_hours: snap.time_to_failure_hours,
+      created_at: nowIso(), last_seen: nowIso(), acknowledged: false,
+    };
+    this.active[key] = a; this.history.unshift(a);
+    if (this.history.length > 300) this.history.length = 300;
+    return a;
+  }
+  ack(id) {
+    for (const v of Object.values(this.active)) if (v.id === id) v.acknowledged = true;
+    const h = this.history.find(x => x.id === id); if (h) h.acknowledged = true;
+  }
+  activeList() { return Object.values(this.active); }
+}
+
+/* ---------- Feedback Store ---------- */
+class FeedbackStore {
+  constructor() { this.records = []; }
+  add(r) { this.records.unshift({ ...r, id: 'F' + Date.now().toString(36), at: nowIso() });
+           if (this.records.length > 500) this.records.length = 500; }
+  recent(n = 20) { return this.records.slice(0, n); }
+  summary() {
+    const total = this.records.length;
+    const correct = this.records.filter(r => r.outcome === 'true_positive').length;
+    const fp = this.records.filter(r => r.outcome === 'false_positive').length;
+    const fn = this.records.filter(r => r.outcome === 'false_negative').length;
+    const precision = (correct + fp) > 0 ? correct / (correct + fp) : null;
+    const recall    = (correct + fn) > 0 ? correct / (correct + fn) : null;
+    return { total, true_positive: correct, false_positive: fp, false_negative: fn, precision, recall };
+  }
+}
+
+/* ---------- ROI Calculator ---------- */
+function computeRoi(cfg, fleetSize, lift) {
+  const claims_baseline = (fleetSize / 1000) * cfg.fleet_warranty_baseline_per_1000;
+  const cost_baseline   = claims_baseline * cfg.warranty_unit_cost_usd;
+  const recovery        = Math.min(0.95, 0.62 + lift);
+  const claims_avoided  = claims_baseline * recovery;
+  const warranty_savings = claims_avoided * cfg.warranty_unit_cost_usd;
+  const validation_savings = cfg.validation_cost_savings_usd * 0.35;
+  const total = warranty_savings + validation_savings;
+  return {
+    fleet_size: fleetSize,
+    claims_baseline, cost_baseline, recovery,
+    claims_avoided, warranty_savings, validation_savings, total,
+    lift,
+  };
+}
+
+/* ---------- Case Study (baseline_v1 vs ewma_plus_v2) ---------- */
+function runCaseStudy(seed, scenario = 'coolant_pump_degrading') {
+  const cfg = { ...DEFAULT_CONFIG };
+  const rng = mulberry32(seed >>> 0);
+  const sub = new BatteryThermalSubsystem(cfg, rng);
+  sub.initVehicle('CASE-1', 'NA-East');
+  sub.vehicles['CASE-1'].scenario = scenario;
+  sub.vehicles['CASE-1'].scenario_t0 = 0;
+  const dB = new DriftDetector(cfg.drift_alpha);
+  const dE = new DriftDetector(cfg.drift_alpha);
+  const seriesB = [], seriesE = [];
+  let firstBreach = null;
+  let alertB = null, alertE = null;
+  for (let i = 0; i < 600; i++) {
+    const r = sub.step('CASE-1', 1);
+    if (firstBreach == null && (r.sample.max_cell_true - r.sample.max_cell_exp > 6.0)) firstBreach = i;
+    const feats = sub.extractFeatures('CASE-1', cfg.inference_window_seconds);
+    const driftB = dB.update(feats);
+    const driftE = dE.update(feats);
+    const pB = ModelRegistry.baseline_v1.predict(feats, driftB.score).probability;
+    const pE = ModelRegistry.ewma_plus_v2.predict(feats, driftE.score).probability;
+    seriesB.push({ t: i, p: pB, d: driftB.score });
+    seriesE.push({ t: i, p: pE, d: driftE.score });
+    if (alertB == null && pB >= cfg.failure_warn_prob) alertB = i;
+    if (alertE == null && pE >= cfg.failure_warn_prob) alertE = i;
+  }
+  return {
+    scenario, firstBreach,
+    baseline: { firstAlert: alertB, lead: firstBreach != null && alertB != null ? firstBreach - alertB : null, series: seriesB },
+    ewmaPlus: { firstAlert: alertE, lead: firstBreach != null && alertE != null ? firstBreach - alertE : null, series: seriesE },
+  };
+}
+
+/* ---------- Fleet Manager ---------- */
+class FleetManager {
+  constructor(cfg) {
+    this.cfg = { ...cfg };
+    this.rng = mulberry32((this.cfg.random_seed || 42) >>> 0);
+    this.sub = new BatteryThermalSubsystem(this.cfg, this.rng);
+    this.detectors = {};
+    this.snapshots = {};
+    this.kpiHistory = [];
+    this.router = new ABRouter(this.cfg.ab_weights);
+    this.alerts = new AlertCenter(this.cfg);
+    this.feedback = new FeedbackStore();
+    this.modelMetrics = {};
+    this._initFleet();
+  }
+  _initFleet() {
+    const regions = this.cfg.regions;
+    const prefix = this.cfg.vehicle_prefix;
+    for (let i = 0; i < this.cfg.fleet_size; i++) {
+      const vid = `${prefix}-${String(i + 1).padStart(4, '0')}`;
+      const region = regions[i % regions.length];
+      this.sub.initVehicle(vid, region);
+      this.detectors[vid] = new DriftDetector(this.cfg.drift_alpha);
+    }
+  }
+  rebuild(newCfg) {
+    Object.assign(this.cfg, newCfg);
+    this.rng = mulberry32((this.cfg.random_seed || 42) >>> 0);
+    this.sub = new BatteryThermalSubsystem(this.cfg, this.rng);
+    this.detectors = {}; this.snapshots = {}; this.kpiHistory = [];
+    this.router = new ABRouter(this.cfg.ab_weights);
+    this.alerts = new AlertCenter(this.cfg);
+    this._initFleet();
+  }
+  vehicleIds() { return Object.keys(this.sub.vehicles); }
+  tickAll(dt = 1.0) {
+    const newAlerts = [];
+    for (const vid of this.vehicleIds()) {
+      const r = this.sub.step(vid, dt);
+      const feats = this.sub.extractFeatures(vid, this.cfg.inference_window_seconds);
+      const det = this.detectors[vid];
+      const drift = det.update(feats);
+      const modelKey = this.router.pick(vid);
+      const pred = ModelRegistry[modelKey].predict(feats, drift.score);
+      const status = statusFor(pred.probability, drift.score, this.cfg);
+      const sample = r.sample;
+      const v = this.sub.vehicles[vid];
+      const snap = {
+        vid, region: v.region, t: sample.t,
+        scenario: r.scenario, fault_active: r.fault_active,
+        probability: pred.probability, ci_low: pred.ci_low, ci_high: pred.ci_high,
+        drift_score: drift.score, drift_contrib: drift.contributions,
+        time_to_failure_hours: pred.time_to_failure_hours,
+        model_version: pred.model_version,
+        status,
+        pack_temp_c: sample.pack_temp_c, max_cell_temp_c: sample.max_cell_temp_c,
+        coolant_delta_c: sample.coolant_delta_c, coolant_flow_lpm: sample.coolant_flow_lpm,
+        pack_temp_exp: sample.pack_temp_exp, max_cell_exp: sample.max_cell_exp,
+        coolant_delta_exp: sample.coolant_delta_exp, coolant_flow_exp: sample.coolant_flow_exp,
+        current_a: sample.current_a,
+        updated_at: nowIso(),
+      };
+      this.snapshots[vid] = snap;
+      // Track model AUC-ish metric (simple): correctness vs fault_active and prob>0.5
+      const mm = this.modelMetrics[modelKey] || { n: 0, tp: 0, fp: 0, tn: 0, fn: 0 };
+      mm.n++;
+      const positive = pred.probability >= 0.5;
+      if (r.fault_active && positive) mm.tp++;
+      else if (r.fault_active && !positive) mm.fn++;
+      else if (!r.fault_active && positive) mm.fp++;
+      else mm.tn++;
+      this.modelMetrics[modelKey] = mm;
+      const a = this.alerts.evaluate(vid, snap);
+      if (a) newAlerts.push(a);
+    }
+    this._recordKpi();
+    return newAlerts;
+  }
+  _recordKpi() {
+    const snaps = Object.values(this.snapshots);
+    if (snaps.length === 0) return;
+    const counts = { healthy: 0, watch: 0, warn: 0, critical: 0 };
+    let probSum = 0, driftSum = 0;
+    for (const s of snaps) { counts[s.status]++; probSum += s.probability; driftSum += s.drift_score; }
+    this.kpiHistory.push({
+      t: Date.now(), avg_prob: probSum / snaps.length, avg_drift: driftSum / snaps.length,
+      ...counts,
+    });
+    if (this.kpiHistory.length > 240) this.kpiHistory.shift();
+  }
+  summary() {
+    const snaps = Object.values(this.snapshots);
+    const total = snaps.length || 1;
+    const counts = { healthy: 0, watch: 0, warn: 0, critical: 0 };
+    let probSum = 0, driftSum = 0;
+    const regionRollup = {};
+    const modelRollup = {};
+    for (const s of snaps) {
+      counts[s.status]++;
+      probSum += s.probability; driftSum += s.drift_score;
+      const rr = regionRollup[s.region] || { region: s.region, n: 0, critical: 0, warn: 0, avg_prob: 0 };
+      rr.n++; if (s.status === 'critical') rr.critical++; if (s.status === 'warn') rr.warn++;
+      rr.avg_prob += s.probability; regionRollup[s.region] = rr;
+      const mr = modelRollup[s.model_version] || { model: s.model_version, n: 0, avg_prob: 0 };
+      mr.n++; mr.avg_prob += s.probability; modelRollup[s.model_version] = mr;
+    }
+    Object.values(regionRollup).forEach(r => r.avg_prob /= r.n);
+    Object.values(modelRollup).forEach(m => m.avg_prob /= m.n);
+    return {
+      fleet_size: snaps.length, counts,
+      avg_prob: probSum / total, avg_drift: driftSum / total,
+      regions: Object.values(regionRollup),
+      models:  Object.values(modelRollup),
+      kpi_history: this.kpiHistory.slice(-120),
+    };
+  }
+}
+
+/* ============================================================
+ * SVG CHART HELPERS
+ * ============================================================ */
+const Charts = {
+  line(container, series, opts = {}) {
+    container.innerHTML = '';
+    const w = container.clientWidth || 600;
+    const h = opts.height || 220;
+    const pad = { l: 38, r: 12, t: 18, b: 26 };
+    const svg = sNode('svg', { class: 'chart', viewBox: `0 0 ${w} ${h}`,
+                               preserveAspectRatio: 'none' });
+    container.appendChild(svg);
+
+    if (!series.length || !series[0].points.length) {
+      const t = sNode('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', fill: 'var(--muted)' });
+      t.textContent = 'No data yet'; svg.appendChild(t); return;
+    }
+
+    let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+    for (const s of series) for (const p of s.points) {
+      if (p.x < xMin) xMin = p.x; if (p.x > xMax) xMax = p.x;
+      if (p.y < yMin) yMin = p.y; if (p.y > yMax) yMax = p.y;
+    }
+    if (opts.yMin != null) yMin = opts.yMin;
+    if (opts.yMax != null) yMax = opts.yMax;
+    if (yMax - yMin < 1e-6) { yMax = yMin + 1; }
+    const xRange = xMax - xMin || 1;
+    const yRange = yMax - yMin || 1;
+    const X = (x) => pad.l + ((x - xMin) / xRange) * (w - pad.l - pad.r);
+    const Y = (y) => h - pad.b - ((y - yMin) / yRange) * (h - pad.t - pad.b);
+
+    // grid + y ticks
+    const ticks = 4;
+    const grid = sNode('g', { class: 'grid' });
+    for (let i = 0; i <= ticks; i++) {
+      const yv = yMin + (i / ticks) * yRange;
+      const y = Y(yv);
+      grid.appendChild(sNode('line', { x1: pad.l, x2: w - pad.r, y1: y, y2: y }));
+      const txt = sNode('text', { x: pad.l - 6, y: y + 3, 'text-anchor': 'end', fill: 'var(--muted)', 'font-size': 10 });
+      txt.textContent = opts.yFmt ? opts.yFmt(yv) : fmt(yv, 2);
+      grid.appendChild(txt);
+    }
+    svg.appendChild(grid);
+
+    // x ticks (few)
+    const xticks = 4;
+    for (let i = 0; i <= xticks; i++) {
+      const xv = xMin + (i / xticks) * xRange;
+      const x = X(xv);
+      const t = sNode('text', { x, y: h - pad.b + 14, 'text-anchor': 'middle', fill: 'var(--muted)', 'font-size': 10 });
+      t.textContent = opts.xFmt ? opts.xFmt(xv) : fmt(xv, 0);
+      svg.appendChild(t);
+    }
+
+    // ref lines
+    if (opts.refs) for (const r of opts.refs) {
+      const y = Y(r.y);
+      const l = sNode('line', { class: 'ref-line', x1: pad.l, x2: w - pad.r, y1: y, y2: y, stroke: r.color || 'var(--crit)' });
+      svg.appendChild(l);
+      if (r.label) {
+        const t = sNode('text', { x: w - pad.r - 4, y: y - 4, 'text-anchor': 'end', fill: r.color || 'var(--crit)', 'font-size': 10 });
+        t.textContent = r.label; svg.appendChild(t);
+      }
+    }
+
+    // series
+    for (const s of series) {
+      let d = '';
+      s.points.forEach((p, i) => { d += (i === 0 ? 'M' : 'L') + X(p.x).toFixed(1) + ',' + Y(p.y).toFixed(1) + ' '; });
+      const path = sNode('path', { d, class: 'series-line' + (s.dashed ? ' dashed' : ''), stroke: s.color });
+      svg.appendChild(path);
+      if (s.fill) {
+        const last = s.points[s.points.length - 1];
+        const first = s.points[0];
+        const area = d + 'L' + X(last.x).toFixed(1) + ',' + Y(yMin).toFixed(1) +
+                          'L' + X(first.x).toFixed(1) + ',' + Y(yMin).toFixed(1) + 'Z';
+        svg.appendChild(sNode('path', { d: area, class: 'series-area', fill: s.color }));
+      }
+    }
+
+    // legend
+    if (opts.legend !== false) {
+      const lg = sNode('g', { class: 'legend' });
+      let lx = pad.l;
+      for (const s of series) {
+        lg.appendChild(sNode('rect', { x: lx, y: 4, width: 10, height: 10, fill: s.color, rx: 2 }));
+        const t = sNode('text', { x: lx + 14, y: 13 });
+        t.textContent = s.name; lg.appendChild(t);
+        lx += 14 + s.name.length * 6.5 + 10;
+      }
+      svg.appendChild(lg);
+    }
+  },
+
+  bar(container, items, opts = {}) {
+    container.innerHTML = '';
+    const w = container.clientWidth || 400;
+    const h = opts.height || 180;
+    const pad = { l: 30, r: 10, t: 10, b: 28 };
+    const svg = sNode('svg', { class: 'chart', viewBox: `0 0 ${w} ${h}` });
+    container.appendChild(svg);
+    if (!items.length) return;
+    const maxV = Math.max(...items.map(i => i.value), 1e-6);
+    const bw = (w - pad.l - pad.r) / items.length;
+    items.forEach((it, idx) => {
+      const x = pad.l + idx * bw + 4;
+      const barH = ((it.value / maxV) * (h - pad.t - pad.b));
+      const y = h - pad.b - barH;
+      svg.appendChild(sNode('rect', { x, y, width: bw - 8, height: barH, fill: it.color || 'var(--accent)', rx: 3 }));
+      const label = sNode('text', { x: x + (bw - 8) / 2, y: h - pad.b + 14, 'text-anchor': 'middle', fill: 'var(--muted)', 'font-size': 10 });
+      label.textContent = it.label; svg.appendChild(label);
+      const val = sNode('text', { x: x + (bw - 8) / 2, y: y - 4, 'text-anchor': 'middle', fill: 'var(--text)', 'font-size': 11 });
+      val.textContent = opts.fmt ? opts.fmt(it.value) : fmt(it.value, 0);
+      svg.appendChild(val);
+    });
+  },
+
+  donut(container, slices, opts = {}) {
+    container.innerHTML = '';
+    const size = Math.min(container.clientWidth || 240, opts.size || 220);
+    const cx = size / 2, cy = size / 2, r = size / 2 - 8, ri = r * 0.62;
+    const svg = sNode('svg', { class: 'chart', viewBox: `0 0 ${size} ${size}`, width: size, height: size });
+    container.appendChild(svg);
+    const total = slices.reduce((a, s) => a + s.value, 0);
+    if (total <= 0) {
+      svg.appendChild(sNode('circle', { cx, cy, r, fill: 'none', stroke: 'var(--line)', 'stroke-width': r - ri }));
+    } else {
+      let a0 = -Math.PI / 2;
+      for (const s of slices) {
+        const ang = (s.value / total) * Math.PI * 2;
+        const a1 = a0 + ang;
+        const large = ang > Math.PI ? 1 : 0;
+        const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
+        const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+        const xi0 = cx + ri * Math.cos(a1), yi0 = cy + ri * Math.sin(a1);
+        const xi1 = cx + ri * Math.cos(a0), yi1 = cy + ri * Math.sin(a0);
+        const d = `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} L ${xi0} ${yi0} A ${ri} ${ri} 0 ${large} 0 ${xi1} ${yi1} Z`;
+        svg.appendChild(sNode('path', { d, fill: s.color }));
+        a0 = a1;
+      }
+    }
+    // center labels
+    const c1 = sNode('text', { x: cx, y: cy - 2, 'text-anchor': 'middle', fill: 'var(--text)', 'font-size': 18, 'font-weight': 700 });
+    c1.textContent = opts.centerValue != null ? opts.centerValue : String(total);
+    svg.appendChild(c1);
+    if (opts.centerLabel) {
+      const c2 = sNode('text', { x: cx, y: cy + 16, 'text-anchor': 'middle', fill: 'var(--muted)', 'font-size': 11 });
+      c2.textContent = opts.centerLabel; svg.appendChild(c2);
+    }
+  },
+
+  sparkline(container, values, color) {
+    container.innerHTML = '';
+    if (!values.length) return;
+    const w = container.clientWidth || 80, h = container.clientHeight || 26;
+    const svg = sNode('svg', { class: 'chart', viewBox: `0 0 ${w} ${h}` });
+    container.appendChild(svg);
+    const mn = Math.min(...values), mx = Math.max(...values);
+    const yR = (mx - mn) || 1;
+    let d = '';
+    values.forEach((v, i) => {
+      const x = (i / Math.max(1, values.length - 1)) * w;
+      const y = h - 2 - ((v - mn) / yR) * (h - 4);
+      d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+    });
+    svg.appendChild(sNode('path', { d, fill: 'none', stroke: color || 'var(--accent)', 'stroke-width': 1.5 }));
+  },
+};
+
+/* ============================================================
+ * APPLICATION STATE
+ * ============================================================ */
+const App = {
+  cfg: { ...DEFAULT_CONFIG },
+  fleet: null,
+  sim: { running: true, speed: 1, lastTick: 0, simTick: 0 },
+  ui: { activeTab: 'executive', selectedVid: null, compareVids: [],
+        roiLift: 0.23, fleetSort: { col: 'probability', dir: 'desc' },
+        fleetFilter: '', toastCount: 0 },
+  saveTimer: null,
+  scheduleSave() {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => {
+      Storage.save({
+        cfg: this.cfg, ui: this.ui, sim: this.sim,
+        feedback: this.fleet ? this.fleet.feedback.records : [],
+        savedAt: nowIso(),
+      });
+    }, 500);
+  },
+};
+
+/* ---------- Toasts ---------- */
+function toast(title, body, kind = 'info', ttl = 5000) {
+  const root = $('#toasts'); if (!root) return;
+  const t = el('div', { class: 'toast ' + kind }, [
+    el('div', { class: 't-title', text: title }),
+    body ? el('div', { class: 't-body', text: body }) : null,
+  ]);
+  root.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, ttl - 300);
+  setTimeout(() => t.remove(), ttl);
+  App.ui.toastCount++;
+}
+
+/* ============================================================
+ * UI RENDERERS
+ * ============================================================ */
+const COLORS = {
+  healthy: 'var(--ok)', watch: 'var(--watch)', warn: 'var(--warn)', critical: 'var(--crit)',
+  baseline: '#ff9a3c', ewma: '#4cc2ff',
+  actual: '#4cc2ff', expected: '#93a0bf', driftLine: '#d2b441', probLine: '#ff5161',
+};
+
+function severityIcon(s) {
+  return { healthy: '✓', watch: '◐', warn: '!', critical: '✕' }[s] || '?';
+}
+
+/* ---------- Executive view ---------- */
+function renderExecutive() {
+  const s = App.fleet.summary();
+  const cfg = App.cfg;
+
+  // KPI cards with sparkline history
+  const kpiRoot = $('#exec-kpis');
+  kpiRoot.innerHTML = '';
+  const kpis = [
+    { label: 'Fleet Size', value: String(s.fleet_size), sub: cfg.regions.length + ' regions', history: null },
+    { label: 'Critical', value: String(s.counts.critical), sub: 'requires action',
+      cls: s.counts.critical > 0 ? 'trend-up' : '', color: 'var(--crit)',
+      history: s.kpi_history.map(h => h.critical) },
+    { label: 'Warn', value: String(s.counts.warn), sub: 'investigate',
+      color: 'var(--warn)', history: s.kpi_history.map(h => h.warn) },
+    { label: 'Healthy', value: String(s.counts.healthy), sub: 'nominal',
+      color: 'var(--ok)', history: s.kpi_history.map(h => h.healthy) },
+    { label: 'Avg Failure P', value: fmtPct(s.avg_prob), sub: 'across fleet',
+      color: 'var(--accent)', history: s.kpi_history.map(h => h.avg_prob) },
+    { label: 'Avg Drift', value: fmt(s.avg_drift, 2), sub: 'EWMA score',
+      color: 'var(--accent)', history: s.kpi_history.map(h => h.avg_drift) },
+  ];
+  for (const k of kpis) {
+    const sp = el('div', { class: 'spark' });
+    const card = el('div', { class: 'kpi ' + (k.cls || '') }, [
+      el('div', { class: 'label', text: k.label }),
+      el('div', { class: 'value', text: k.value }),
+      el('div', { class: 'sub', text: k.sub }),
+      sp,
+    ]);
+    kpiRoot.appendChild(card);
+    if (k.history && k.history.length > 1) Charts.sparkline(sp, k.history, k.color);
+  }
+
+  // Donut + alerts
+  const donut = $('#exec-donut');
+  Charts.donut(donut, [
+    { label: 'Healthy', value: s.counts.healthy, color: 'var(--ok)' },
+    { label: 'Watch',    value: s.counts.watch,    color: 'var(--watch)' },
+    { label: 'Warn',     value: s.counts.warn,     color: 'var(--warn)' },
+    { label: 'Critical', value: s.counts.critical, color: 'var(--crit)' },
+  ], { centerValue: s.fleet_size, centerLabel: 'vehicles' });
+
+  // Alerts list
+  const alerts = App.fleet.alerts.activeList()
+    .sort((a, b) => (b.severity === 'critical' ? 1 : 0) - (a.severity === 'critical' ? 1 : 0));
+  const aroot = $('#exec-alerts'); aroot.innerHTML = '';
+  if (!alerts.length) {
+    aroot.appendChild(el('li', { class: 'muted', text: 'No active alerts. Fleet operating within thresholds.' }));
+  }
+  for (const a of alerts.slice(0, 8)) {
+    const li = el('li', { class: a.severity }, [
+      el('div', {}, [
+        el('div', {}, [
+          el('span', { class: 'badge ' + a.severity, text: a.severity.toUpperCase() }),
+          ' ', el('strong', { text: a.vid }),
+          ' — ', a.scenario.replace(/_/g, ' '),
+        ]),
+        el('div', { class: 'meta', text:
+          `P=${fmtPct(a.probability)} · drift=${fmt(a.drift_score, 2)} · TTF≈${fmt(a.ttf_hours, 1)}h · ${a.model_version}` }),
+      ]),
+      el('div', {}, [
+        el('button', { onclick: () => { App.fleet.alerts.ack(a.id); render(); },
+                       text: a.acknowledged ? 'acked' : 'ack' }),
+        ' ',
+        el('button', { onclick: () => { App.ui.selectedVid = a.vid; activateTab('drilldown'); },
+                       text: 'open' }),
+      ]),
+    ]);
+    aroot.appendChild(li);
+  }
+
+  // Region rollup table
+  const rRoot = $('#exec-regions'); rRoot.innerHTML = '';
+  const head = el('tr', {}, [
+    el('th', { text: 'Region' }), el('th', { text: 'Vehicles' }),
+    el('th', { text: 'Critical' }), el('th', { text: 'Warn' }),
+    el('th', { text: 'Avg P' }),
+  ]);
+  const thead = el('thead'); thead.appendChild(head); rRoot.appendChild(thead);
+  const tb = el('tbody');
+  for (const r of s.regions.sort((a, b) => b.critical - a.critical)) {
+    tb.appendChild(el('tr', {}, [
+      el('td', { text: r.region }), el('td', { text: r.n }),
+      el('td', {}, [el('span', { class: 'badge ' + (r.critical > 0 ? 'critical' : 'healthy'), text: r.critical })]),
+      el('td', {}, [el('span', { class: 'badge ' + (r.warn > 0 ? 'warn' : 'healthy'), text: r.warn })]),
+      el('td', { text: fmtPct(r.avg_prob) }),
+    ]));
+  }
+  rRoot.appendChild(tb);
+
+  // ROI panel (interactive)
+  renderRoi();
+}
+
+function renderRoi() {
+  const cfg = App.cfg;
+  const fleet = App.fleet.snapshots ? Object.keys(App.fleet.snapshots).length : cfg.fleet_size;
+  const lift = App.ui.roiLift;
+  const r = computeRoi(cfg, fleet, lift);
+  const root = $('#exec-roi'); root.innerHTML = '';
+  root.appendChild(el('div', { class: 'kpi-grid' }, [
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Total est. savings' }),
+      el('div', { class: 'value', text: fmtUSD(r.total) }),
+      el('div', { class: 'sub', text: `Lift ${fmtPct(lift)} (slider)` }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Warranty savings' }),
+      el('div', { class: 'value', text: fmtUSD(r.warranty_savings) }),
+      el('div', { class: 'sub', text: `${fmt(r.claims_avoided, 1)} claims avoided` }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Validation savings' }),
+      el('div', { class: 'value', text: fmtUSD(r.validation_savings) }),
+      el('div', { class: 'sub', text: 'HW/test consolidation' }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Recovery rate' }),
+      el('div', { class: 'value', text: fmtPct(r.recovery) }),
+      el('div', { class: 'sub', text: `vs ${fmtPct(cfg.validation_recovery_target)} target` }),
+    ]),
+  ]));
+  $('#roi-lift-val').textContent = fmtPct(lift);
+}
+
+/* ---------- Fleet view ---------- */
+function renderFleet() {
+  const snaps = Object.values(App.fleet.snapshots);
+  const filter = App.ui.fleetFilter.trim().toLowerCase();
+  const filtered = snaps.filter(s =>
+    !filter || s.vid.toLowerCase().includes(filter) || s.region.toLowerCase().includes(filter)
+      || s.status.includes(filter) || s.scenario.toLowerCase().includes(filter));
+  const { col, dir } = App.ui.fleetSort;
+  const mult = dir === 'asc' ? 1 : -1;
+  filtered.sort((a, b) => {
+    const va = a[col], vb = b[col];
+    if (typeof va === 'number') return (va - vb) * mult;
+    return String(va).localeCompare(String(vb)) * mult;
+  });
+
+  const tbl = $('#fleet-table');
+  tbl.innerHTML = '';
+  const cols = [
+    ['vid', 'Vehicle'], ['region', 'Region'], ['status', 'Status'],
+    ['probability', 'P(failure)'], ['drift_score', 'Drift'],
+    ['time_to_failure_hours', 'TTF (h)'], ['model_version', 'Model'],
+    ['scenario', 'Scenario'],
+  ];
+  const tr = el('tr');
+  for (const [k, lbl] of cols) {
+    const th = el('th', { text: lbl,
+                          class: col === k ? ('sort-' + dir) : '',
+                          onclick: () => {
+                            if (App.ui.fleetSort.col === k) App.ui.fleetSort.dir = dir === 'asc' ? 'desc' : 'asc';
+                            else { App.ui.fleetSort.col = k; App.ui.fleetSort.dir = 'desc'; }
+                            App.scheduleSave(); renderFleet();
+                          } });
+    tr.appendChild(th);
+  }
+  const thead = el('thead'); thead.appendChild(tr); tbl.appendChild(thead);
+  const tb = el('tbody');
+  for (const s of filtered) {
+    const cls = s.status === 'critical' ? 'row-critical' : s.status === 'warn' ? 'row-warn' : '';
+    const row = el('tr', { class: cls + (App.ui.selectedVid === s.vid ? ' selected' : '') }, [
+      el('td', {}, [el('strong', { text: s.vid })]),
+      el('td', { text: s.region }),
+      el('td', {}, [el('span', { class: 'badge ' + s.status, text: s.status })]),
+      el('td', { text: fmtPct(s.probability) }),
+      el('td', { text: fmt(s.drift_score, 2) }),
+      el('td', { text: fmt(s.time_to_failure_hours, 1) }),
+      el('td', { text: s.model_version }),
+      el('td', { text: s.scenario.replace(/_/g, ' ') }),
+    ]);
+    row.addEventListener('click', () => {
+      App.ui.selectedVid = s.vid;
+      activateTab('drilldown');
+    });
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const idx = App.ui.compareVids.indexOf(s.vid);
+      if (idx >= 0) App.ui.compareVids.splice(idx, 1);
+      else if (App.ui.compareVids.length < 5) App.ui.compareVids.push(s.vid);
+      App.scheduleSave(); renderFleet();
+    });
+    tb.appendChild(row);
+  }
+  tbl.appendChild(tb);
+  $('#fleet-count').textContent = `${filtered.length} / ${snaps.length}`;
+
+  // Compare panel
+  renderCompare();
+}
+
+function renderCompare() {
+  const root = $('#fleet-compare-chips'); root.innerHTML = '';
+  if (App.ui.compareVids.length === 0) {
+    root.appendChild(el('span', { class: 'muted',
+      text: 'Right-click rows to add vehicles to compare overlay (up to 5).' }));
+  }
+  for (const vid of App.ui.compareVids) {
+    root.appendChild(el('span', { class: 'compare-chip' }, [
+      vid,
+      el('button', { onclick: () => {
+        App.ui.compareVids = App.ui.compareVids.filter(v => v !== vid);
+        App.scheduleSave(); renderCompare();
+      }, text: '×' }),
+    ]));
+  }
+  const palette = ['#4cc2ff', '#ff9a3c', '#36c987', '#d2b441', '#c084fc'];
+  const series = App.ui.compareVids.map((vid, i) => {
+    const v = App.fleet.sub.vehicles[vid];
+    if (!v || !v.history.length) return null;
+    return {
+      name: vid, color: palette[i % palette.length],
+      points: v.history.slice(-180).map(s => ({ x: s.t, y: s.max_cell_temp_c })),
+    };
+  }).filter(Boolean);
+  Charts.line($('#fleet-compare-chart'), series, {
+    height: 220, xFmt: x => Math.round(x) + 's',
+    yFmt: y => fmt(y, 1) + '°C',
+  });
+}
+
+/* ---------- Drill-down view ---------- */
+function renderDrilldown() {
+  const sel = $('#drill-vid');
+  const vids = App.fleet.vehicleIds();
+  if (sel.options.length !== vids.length || sel.dataset.signature !== vids.join(',')) {
+    sel.innerHTML = '';
+    vids.forEach(v => sel.appendChild(el('option', { value: v, text: v })));
+    sel.dataset.signature = vids.join(',');
+  }
+  if (!App.ui.selectedVid || !vids.includes(App.ui.selectedVid)) App.ui.selectedVid = vids[0];
+  sel.value = App.ui.selectedVid;
+
+  const vid = App.ui.selectedVid;
+  const snap = App.fleet.snapshots[vid];
+  const vehicle = App.fleet.sub.vehicles[vid];
+  if (!snap || !vehicle) return;
+
+  $('#drill-status').className = 'badge ' + snap.status;
+  $('#drill-status').textContent = snap.status.toUpperCase();
+  $('#drill-summary').innerHTML = '';
+  $('#drill-summary').appendChild(el('div', { class: 'kpi-grid' }, [
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'P(failure)' }),
+      el('div', { class: 'value', text: fmtPct(snap.probability) }),
+      el('div', { class: 'sub', text: `CI [${fmtPct(snap.ci_low)} – ${fmtPct(snap.ci_high)}]` }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Drift score' }),
+      el('div', { class: 'value', text: fmt(snap.drift_score, 2) }),
+      el('div', { class: 'sub', text: `α=${App.cfg.drift_alpha}` }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Time to failure' }),
+      el('div', { class: 'value', text: fmt(snap.time_to_failure_hours, 1) + 'h' }),
+      el('div', { class: 'sub', text: snap.fault_active ? 'fault active' : 'nominal' }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Model' }),
+      el('div', { class: 'value', text: snap.model_version }),
+      el('div', { class: 'sub', text: `region ${snap.region}` }),
+    ]),
+  ]));
+
+  const hist = vehicle.history.slice(-240);
+  // Temp chart
+  Charts.line($('#drill-temp'), [
+    { name: 'Pack actual',   color: COLORS.actual,   points: hist.map(s => ({ x: s.t, y: s.pack_temp_c })) },
+    { name: 'Pack expected', color: COLORS.expected, dashed: true, points: hist.map(s => ({ x: s.t, y: s.pack_temp_exp })) },
+    { name: 'Max cell',      color: COLORS.probLine, points: hist.map(s => ({ x: s.t, y: s.max_cell_temp_c })) },
+  ], { height: 220, xFmt: x => Math.round(x) + 's', yFmt: y => fmt(y, 1) + '°C',
+       refs: [{ y: 55, label: 'critical 55°C', color: 'var(--crit)' }] });
+
+  // Coolant
+  Charts.line($('#drill-cool'), [
+    { name: 'ΔT actual',   color: COLORS.actual, points: hist.map(s => ({ x: s.t, y: s.coolant_delta_c })) },
+    { name: 'ΔT expected', color: COLORS.expected, dashed: true, points: hist.map(s => ({ x: s.t, y: s.coolant_delta_exp })) },
+    { name: 'Flow lpm',    color: COLORS.driftLine, points: hist.map(s => ({ x: s.t, y: s.coolant_flow_lpm })) },
+  ], { height: 220, xFmt: x => Math.round(x) + 's' });
+
+  // Build short prob/drift history from snapshots (we only have current snap; reuse kpiHistory averaged)
+  // Use a per-vehicle running buffer
+  if (!App.perVehicleHistory) App.perVehicleHistory = {};
+  let pvh = App.perVehicleHistory[vid] || [];
+  const last = pvh[pvh.length - 1];
+  if (!last || last.t !== snap.t) { pvh.push({ t: snap.t, p: snap.probability, d: snap.drift_score });
+    if (pvh.length > 240) pvh.shift(); App.perVehicleHistory[vid] = pvh; }
+
+  Charts.line($('#drill-risk'), [
+    { name: 'P(failure)', color: COLORS.probLine, fill: true, points: pvh.map(s => ({ x: s.t, y: s.p })) },
+    { name: 'Drift',      color: COLORS.driftLine, points: pvh.map(s => ({ x: s.t, y: s.d })) },
+  ], { height: 220, xFmt: x => Math.round(x) + 's', yMin: 0, yMax: 1,
+       refs: [
+         { y: App.cfg.failure_warn_prob, label: 'warn', color: 'var(--warn)' },
+         { y: App.cfg.failure_critical_prob, label: 'critical', color: 'var(--crit)' },
+       ] });
+
+  // Drift contributions
+  const contribs = snap.drift_contrib || {};
+  const items = Object.entries(contribs).map(([k, v]) => ({ label: k.replace('_residual_', ' '), value: v }));
+  Charts.bar($('#drill-contrib'), items, { height: 200, fmt: v => fmt(v, 2) });
+}
+
+/* ---------- Case Study ---------- */
+let _caseCache = null;
+function renderCaseStudy(forceScenario) {
+  const scenarioSel = $('#case-scenario');
+  if (forceScenario) scenarioSel.value = forceScenario;
+  const sc = scenarioSel.value || 'coolant_pump_degrading';
+  const seed = parseInt($('#case-seed').value, 10) || 7;
+  if (!_caseCache || _caseCache.sc !== sc || _caseCache.seed !== seed) {
+    _caseCache = { sc, seed, data: runCaseStudy(seed, sc) };
+  }
+  const r = _caseCache.data;
+  $('#case-summary').innerHTML = '';
+  $('#case-summary').appendChild(el('div', { class: 'kpi-grid' }, [
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'First physical breach' }),
+      el('div', { class: 'value', text: r.firstBreach != null ? r.firstBreach + 's' : '—' }),
+      el('div', { class: 'sub', text: 'max cell > expected + 6°C' }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'baseline_v1 alert' }),
+      el('div', { class: 'value', text: r.baseline.firstAlert != null ? r.baseline.firstAlert + 's' : '—' }),
+      el('div', { class: 'sub', text: 'lead: ' + (r.baseline.lead != null ? r.baseline.lead + 's' : '—') }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'ewma_plus_v2 alert' }),
+      el('div', { class: 'value', text: r.ewmaPlus.firstAlert != null ? r.ewmaPlus.firstAlert + 's' : '—' }),
+      el('div', { class: 'sub', text: 'lead: ' + (r.ewmaPlus.lead != null ? r.ewmaPlus.lead + 's' : '—') }),
+    ]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Improvement' }),
+      el('div', { class: 'value', text: (r.baseline.lead != null && r.ewmaPlus.lead != null)
+        ? '+' + (r.ewmaPlus.lead - r.baseline.lead) + 's' : '—' }),
+      el('div', { class: 'sub', text: 'earlier warning' }),
+    ]),
+  ]));
+
+  Charts.line($('#case-chart'), [
+    { name: 'baseline_v1 P', color: COLORS.baseline, points: r.baseline.series.map(s => ({ x: s.t, y: s.p })) },
+    { name: 'ewma_plus_v2 P', color: COLORS.ewma,   points: r.ewmaPlus.series.map(s => ({ x: s.t, y: s.p })) },
+  ], { height: 260, yMin: 0, yMax: 1, xFmt: x => x + 's',
+       refs: [
+         { y: App.cfg.failure_warn_prob, label: 'warn', color: 'var(--warn)' },
+         { y: App.cfg.failure_critical_prob, label: 'critical', color: 'var(--crit)' },
+         ...(r.firstBreach != null
+           ? [{ y: 0.99, label: '' }] // ignore
+           : []),
+       ] });
+}
+
+/* ---------- Models & A/B ---------- */
+function renderModels() {
+  const mm = App.fleet.modelMetrics;
+  const root = $('#models-table'); root.innerHTML = '';
+  const thead = el('thead'); thead.appendChild(el('tr', {}, [
+    el('th', { text: 'Model' }), el('th', { text: 'Samples' }),
+    el('th', { text: 'TP' }), el('th', { text: 'FP' }),
+    el('th', { text: 'FN' }), el('th', { text: 'TN' }),
+    el('th', { text: 'Precision' }), el('th', { text: 'Recall' }),
+  ]));
+  root.appendChild(thead);
+  const tb = el('tbody');
+  for (const [k, m] of Object.entries(mm)) {
+    const prec = (m.tp + m.fp) > 0 ? m.tp / (m.tp + m.fp) : null;
+    const rec  = (m.tp + m.fn) > 0 ? m.tp / (m.tp + m.fn) : null;
+    tb.appendChild(el('tr', {}, [
+      el('td', {}, [el('strong', { text: k })]),
+      el('td', { text: m.n }), el('td', { text: m.tp }), el('td', { text: m.fp }),
+      el('td', { text: m.fn }), el('td', { text: m.tn }),
+      el('td', { text: prec != null ? fmtPct(prec) : '—' }),
+      el('td', { text: rec  != null ? fmtPct(rec)  : '—' }),
+    ]));
+  }
+  root.appendChild(tb);
+
+  // Bar of average probability per model
+  const summary = App.fleet.summary();
+  Charts.bar($('#models-bars'), summary.models.map(m => ({
+    label: m.model, value: m.avg_prob,
+    color: m.model === 'ewma_plus_v2' ? COLORS.ewma : COLORS.baseline,
+  })), { height: 180, fmt: v => fmtPct(v) });
+
+  // A/B weights form
+  const root2 = $('#ab-weights'); root2.innerHTML = '';
+  for (const [k, w] of Object.entries(App.cfg.ab_weights)) {
+    root2.appendChild(el('label', {}, [
+      el('span', { text: k }),
+      el('input', { type: 'number', step: '0.05', min: '0', max: '1', value: w,
+        oninput: (e) => {
+          App.cfg.ab_weights[k] = parseFloat(e.target.value) || 0;
+          App.fleet.router = new ABRouter(App.cfg.ab_weights); App.scheduleSave();
+        } }),
+    ]));
+  }
+}
+
+/* ---------- Feedback ---------- */
+function renderFeedback() {
+  const vsel = $('#fb-vid');
+  const vids = App.fleet.vehicleIds();
+  if (vsel.options.length !== vids.length) {
+    vsel.innerHTML = ''; vids.forEach(v => vsel.appendChild(el('option', { value: v, text: v })));
+  }
+  const sum = App.fleet.feedback.summary();
+  $('#fb-summary').innerHTML = '';
+  $('#fb-summary').appendChild(el('div', { class: 'kpi-grid' }, [
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Total feedback' }),
+      el('div', { class: 'value', text: sum.total })]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'True positives' }),
+      el('div', { class: 'value', text: sum.true_positive })]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Precision' }),
+      el('div', { class: 'value', text: sum.precision != null ? fmtPct(sum.precision) : '—' })]),
+    el('div', { class: 'kpi' }, [
+      el('div', { class: 'label', text: 'Recall' }),
+      el('div', { class: 'value', text: sum.recall != null ? fmtPct(sum.recall) : '—' })]),
+  ]));
+  const tb = $('#fb-table'); tb.innerHTML = '';
+  const thead = el('thead'); thead.appendChild(el('tr', {}, [
+    el('th', { text: 'Time' }), el('th', { text: 'Vehicle' }), el('th', { text: 'Outcome' }),
+    el('th', { text: 'Notes' }),
+  ]));
+  tb.appendChild(thead);
+  const tbody = el('tbody');
+  for (const r of App.fleet.feedback.recent(30)) {
+    tbody.appendChild(el('tr', {}, [
+      el('td', { text: r.at.slice(11, 19) }),
+      el('td', { text: r.vid }),
+      el('td', {}, [el('span', { class: 'badge ' + (r.outcome === 'true_positive' ? 'healthy'
+        : r.outcome === 'false_positive' ? 'warn' : 'critical'), text: r.outcome.replace(/_/g, ' ') })]),
+      el('td', { text: r.notes || '' }),
+    ]));
+  }
+  tb.appendChild(tbody);
+}
+
+/* ---------- Maintenance ---------- */
+function renderMaintenance() {
+  const snaps = Object.values(App.fleet.snapshots);
+  const buckets = [
+    { name: '< 4 hours',    test: s => s.time_to_failure_hours < 4,                            cls: 'critical' },
+    { name: '4 – 12 hours', test: s => s.time_to_failure_hours >= 4  && s.time_to_failure_hours < 12, cls: 'warn' },
+    { name: '12 – 36 hours',test: s => s.time_to_failure_hours >= 12 && s.time_to_failure_hours < 36, cls: 'watch' },
+    { name: '36 – 72 hours',test: s => s.time_to_failure_hours >= 36 && s.time_to_failure_hours < 72, cls: '' },
+    { name: '> 72 hours',   test: s => s.time_to_failure_hours >= 72,                          cls: '' },
+  ];
+  const root = $('#maint-buckets'); root.innerHTML = '';
+  const total = snaps.length || 1;
+  for (const b of buckets) {
+    const matched = snaps.filter(b.test).sort((a, b) => a.time_to_failure_hours - b.time_to_failure_hours);
+    const pct = (matched.length / total) * 100;
+    const div = el('div', { class: 'bucket ' + b.cls }, [
+      el('div', { class: 'bname', text: b.name }),
+      el('div', { class: 'bbar' }, [el('div', { style: `width:${pct}%` })]),
+      el('div', { class: 'bcount', text: matched.length }),
+      el('div', { class: 'blist', text: matched.slice(0, 12).map(s => `${s.vid} (${fmt(s.time_to_failure_hours, 1)}h)`).join(' · ') }),
+    ]);
+    root.appendChild(div);
+  }
+  // Suggested service window
+  const sched = $('#maint-schedule'); sched.innerHTML = '';
+  const head = el('thead'); head.appendChild(el('tr', {}, [
+    el('th', { text: 'Vehicle' }), el('th', { text: 'Region' }), el('th', { text: 'TTF (h)' }),
+    el('th', { text: 'Suggested window' }), el('th', { text: 'Action' }),
+  ]));
+  sched.appendChild(head);
+  const tb = el('tbody');
+  const urgent = snaps.filter(s => s.time_to_failure_hours < 36)
+                      .sort((a, b) => a.time_to_failure_hours - b.time_to_failure_hours);
+  for (const s of urgent.slice(0, 20)) {
+    const action = s.scenario === 'coolant_pump_degrading' ? 'Inspect coolant pump'
+                : s.scenario === 'cell_imbalance' ? 'Run cell balancing routine'
+                : s.scenario === 'sensor_bias' ? 'Recalibrate temp sensors'
+                : 'Diagnostic scan';
+    const eta = new Date(Date.now() + s.time_to_failure_hours * 0.6 * 3600 * 1000);
+    tb.appendChild(el('tr', {}, [
+      el('td', {}, [el('strong', { text: s.vid })]),
+      el('td', { text: s.region }),
+      el('td', { text: fmt(s.time_to_failure_hours, 1) }),
+      el('td', { text: eta.toLocaleString() }),
+      el('td', { text: action }),
+    ]));
+  }
+  if (urgent.length === 0) {
+    tb.appendChild(el('tr', {}, [el('td', { colspan: 5, class: 'muted',
+      text: 'No vehicles below 36h TTF threshold. Routine schedule applies.' })]));
+  }
+  sched.appendChild(tb);
+}
+
+/* ---------- Config ---------- */
+function renderConfig() {
+  const root = $('#cfg-form'); root.innerHTML = '';
+  const fields = [
+    ['fleet_size', 'Fleet size', 'number'],
+    ['drift_alpha', 'Drift α (EWMA)', 'number'],
+    ['drift_warn', 'Drift warn', 'number'],
+    ['drift_critical', 'Drift critical', 'number'],
+    ['failure_warn_prob', 'Failure warn P', 'number'],
+    ['failure_critical_prob', 'Failure critical P', 'number'],
+    ['inference_window_seconds', 'Inference window (s)', 'number'],
+    ['random_seed', 'Random seed', 'number'],
+  ];
+  for (const [k, lbl, type] of fields) {
+    root.appendChild(el('label', {}, [
+      el('span', { text: lbl }),
+      el('input', { type, step: '0.05', value: App.cfg[k],
+        onchange: (e) => {
+          const v = type === 'number' ? parseFloat(e.target.value) : e.target.value;
+          App.cfg[k] = v; App.scheduleSave();
+        } }),
+    ]));
+  }
+  const buttons = el('div', { class: 'row', style: 'grid-column: 1/-1' }, [
+    el('button', { class: 'primary', text: 'Apply & rebuild fleet',
+      onclick: () => {
+        App.fleet.rebuild(App.cfg);
+        App.perVehicleHistory = {};
+        toast('Fleet rebuilt', `${App.cfg.fleet_size} vehicles initialized.`, 'ok');
+        App.scheduleSave(); render();
+      } }),
+    el('button', { class: 'ghost', text: 'Reset to defaults',
+      onclick: () => {
+        if (!confirm('Reset configuration to defaults?')) return;
+        App.cfg = { ...DEFAULT_CONFIG };
+        App.fleet.rebuild(App.cfg);
+        App.perVehicleHistory = {};
+        App.scheduleSave(); render();
+      } }),
+  ]);
+  root.appendChild(buttons);
+}
+
+/* ============================================================
+ * TABS + EVENTS
+ * ============================================================ */
+const TABS = ['executive', 'fleet', 'drilldown', 'maintenance', 'case', 'models', 'feedback', 'config'];
+
+function activateTab(name) {
+  if (!TABS.includes(name)) name = 'executive';
+  App.ui.activeTab = name;
+  $$('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  if (window.location.hash !== '#' + name) {
+    history.replaceState(null, '', '#' + name);
+  }
+  App.scheduleSave();
+  render();
+}
+
+function render() {
+  const t = App.ui.activeTab;
+  if (t === 'executive')   renderExecutive();
+  if (t === 'fleet')       renderFleet();
+  if (t === 'drilldown')   renderDrilldown();
+  if (t === 'case')        renderCaseStudy();
+  if (t === 'models')      renderModels();
+  if (t === 'feedback')    renderFeedback();
+  if (t === 'maintenance') renderMaintenance();
+  if (t === 'config')      renderConfig();
+}
+
+function tickLoop(ts) {
+  if (!App.sim.lastTick) App.sim.lastTick = ts;
+  const elapsed = ts - App.sim.lastTick;
+  // Each tick = 1 simulated second. Speed multiplies how many sim seconds per real second.
+  const interval = 1000 / App.sim.speed;
+  if (App.sim.running && elapsed >= interval) {
+    const ticks = Math.min(60, Math.floor(elapsed / interval));
+    App.sim.lastTick = ts;
+    for (let i = 0; i < ticks; i++) {
+      const newAlerts = App.fleet.tickAll(1.0);
+      App.sim.simTick++;
+      for (const a of newAlerts) {
+        if (a.severity === 'critical') {
+          toast('Critical alert: ' + a.vid,
+                `${a.scenario.replace(/_/g, ' ')} · P=${fmtPct(a.probability)}`, 'critical');
+        }
+      }
+    }
+    render();
+    updateSimStatus();
+  }
+  requestAnimationFrame(tickLoop);
+}
+
+function stepOnce() {
+  App.fleet.tickAll(1.0);
+  App.sim.simTick++;
+  render(); updateSimStatus();
+}
+
+function updateSimStatus() {
+  $('#sim-status').classList.toggle('running', App.sim.running);
+  $('#sim-tick-counter').textContent = 'tick ' + App.sim.simTick;
+}
+
+/* ---------- Snapshot import/export ---------- */
+function exportSnapshot() {
+  const data = {
+    exportedAt: nowIso(),
+    cfg: App.cfg,
+    snapshots: App.fleet.snapshots,
+    alerts: { active: App.fleet.alerts.activeList(), history: App.fleet.alerts.history.slice(0, 50) },
+    feedback: App.fleet.feedback.records,
+    summary: App.fleet.summary(),
+    modelMetrics: App.fleet.modelMetrics,
+  };
+  downloadBlob(JSON.stringify(data, null, 2),
+    `hpc-snapshot-${Date.now()}.json`, 'application/json');
+}
+
+function exportFleetCsv() {
+  const snaps = Object.values(App.fleet.snapshots);
+  const cols = ['vid', 'region', 'status', 'probability', 'ci_low', 'ci_high',
+    'drift_score', 'time_to_failure_hours', 'model_version', 'scenario',
+    'pack_temp_c', 'max_cell_temp_c', 'coolant_delta_c', 'coolant_flow_lpm'];
+  const lines = [cols.join(',')];
+  for (const s of snaps) {
+    lines.push(cols.map(c => {
+      const v = s[c]; if (typeof v === 'string') return JSON.stringify(v);
+      return v != null ? v : '';
+    }).join(','));
+  }
+  downloadBlob(lines.join('\n'), `hpc-fleet-${Date.now()}.csv`, 'text/csv');
+}
+
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 100);
+}
+
+function importSnapshot(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const data = JSON.parse(fr.result);
+      if (data.cfg) { App.cfg = { ...DEFAULT_CONFIG, ...data.cfg };
+                       App.fleet.rebuild(App.cfg); }
+      if (data.feedback) data.feedback.forEach(r => App.fleet.feedback.records.push(r));
+      toast('Snapshot loaded', `from ${data.exportedAt || 'unknown'}`, 'ok');
+      App.scheduleSave(); render();
+    } catch (e) {
+      toast('Import failed', e.message, 'critical');
+    }
+  };
+  fr.readAsText(file);
+}
+
+function shareUrl() {
+  const enc = btoa(unescape(encodeURIComponent(JSON.stringify({
+    cfg: App.cfg, tab: App.ui.activeTab, vid: App.ui.selectedVid,
+  }))));
+  const url = location.origin + location.pathname + '#' + App.ui.activeTab + '|s=' + enc;
+  navigator.clipboard?.writeText(url).then(
+    () => toast('Share link copied', 'Pasted to clipboard.', 'ok'),
+    () => prompt('Copy this link:', url));
+}
+
+function loadShareState() {
+  const h = window.location.hash.slice(1);
+  if (!h) return;
+  const [tab, ...rest] = h.split('|');
+  if (TABS.includes(tab)) App.ui.activeTab = tab;
+  const sParam = rest.find(r => r.startsWith('s='));
+  if (sParam) {
+    try {
+      const dec = JSON.parse(decodeURIComponent(escape(atob(sParam.slice(2)))));
+      if (dec.cfg) App.cfg = { ...DEFAULT_CONFIG, ...dec.cfg };
+      if (dec.vid) App.ui.selectedVid = dec.vid;
+    } catch {}
+  }
+}
+
+/* ---------- Init ---------- */
+function wireUi() {
+  $$('.tab').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
+
+  $('#btn-play').addEventListener('click', () => { App.sim.running = !App.sim.running;
+    $('#btn-play').textContent = App.sim.running ? '⏸' : '▶'; updateSimStatus(); App.scheduleSave(); });
+  $('#btn-step').addEventListener('click', stepOnce);
+  $('#sim-speed').addEventListener('change', (e) => {
+    App.sim.speed = parseFloat(e.target.value); App.scheduleSave(); });
+
+  $('#btn-theme').addEventListener('click', () => {
+    document.body.classList.toggle('theme-light');
+    const isLight = document.body.classList.contains('theme-light');
+    $('#btn-theme').textContent = isLight ? '🌙' : '☀️';
+    App.ui.theme = isLight ? 'light' : 'dark'; App.scheduleSave(); render();
+  });
+
+  $('#btn-share').addEventListener('click', shareUrl);
+  $('#btn-export-json').addEventListener('click', exportSnapshot);
+  $('#btn-export-csv').addEventListener('click', exportFleetCsv);
+  $('#btn-print').addEventListener('click', () => window.print());
+
+  $('#btn-import').addEventListener('click', () => $('#file-import').click());
+  $('#file-import').addEventListener('change', (e) => {
+    const f = e.target.files[0]; if (f) importSnapshot(f); e.target.value = '';
+  });
+
+  $('#btn-reset').addEventListener('click', () => {
+    if (!confirm('Clear saved state and reload?')) return;
+    Storage.clear(); location.reload();
+  });
+
+  // ROI slider
+  $('#roi-lift').addEventListener('input', (e) => {
+    App.ui.roiLift = parseFloat(e.target.value); renderRoi(); App.scheduleSave();
+  });
+
+  // Fleet search
+  $('#fleet-search').addEventListener('input', (e) => {
+    App.ui.fleetFilter = e.target.value; renderFleet();
+  });
+
+  // Drilldown selector and fault injection
+  $('#drill-vid').addEventListener('change', (e) => {
+    App.ui.selectedVid = e.target.value; App.scheduleSave(); renderDrilldown();
+  });
+  $('#drill-inject').addEventListener('click', () => {
+    const sc = $('#drill-inject-scenario').value;
+    App.fleet.sub.injectFault(App.ui.selectedVid, sc);
+    toast('Fault injected', `${sc.replace(/_/g, ' ')} → ${App.ui.selectedVid}`, 'warn');
+  });
+  $('#drill-reset').addEventListener('click', () => {
+    App.fleet.sub.reset(App.ui.selectedVid);
+    App.fleet.detectors[App.ui.selectedVid] = new DriftDetector(App.cfg.drift_alpha);
+    App.perVehicleHistory[App.ui.selectedVid] = [];
+    toast('Vehicle reset', App.ui.selectedVid, 'ok');
+  });
+
+  // Case study controls
+  $('#case-scenario').addEventListener('change', () => { _caseCache = null; renderCaseStudy(); });
+  $('#case-seed').addEventListener('change', () => { _caseCache = null; renderCaseStudy(); });
+
+  // Feedback form
+  $('#fb-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const vid = $('#fb-vid').value;
+    const outcome = $('#fb-outcome').value;
+    const notes = $('#fb-notes').value;
+    App.fleet.feedback.add({ vid, outcome, notes });
+    toast('Feedback recorded', `${vid}: ${outcome.replace(/_/g, ' ')}`, 'ok');
+    $('#fb-notes').value = '';
+    App.scheduleSave(); renderFeedback();
+  });
+
+  window.addEventListener('hashchange', () => {
+    const h = window.location.hash.slice(1).split('|')[0];
+    if (TABS.includes(h) && h !== App.ui.activeTab) activateTab(h);
+  });
+  window.addEventListener('resize', () => render());
+}
+
+function bootstrap() {
+  loadShareState();
+  const saved = Storage.load();
+  if (saved) {
+    if (saved.cfg) App.cfg = { ...DEFAULT_CONFIG, ...saved.cfg };
+    if (saved.ui)  Object.assign(App.ui, saved.ui);
+    if (saved.sim) Object.assign(App.sim, saved.sim, { lastTick: 0 });
+    if (saved.ui && saved.ui.theme === 'light') document.body.classList.add('theme-light');
+  }
+
+  App.fleet = new FleetManager(App.cfg);
+  if (saved && saved.feedback) saved.feedback.forEach(r => App.fleet.feedback.records.push(r));
+
+  // Warm-up: run some ticks so charts have data
+  for (let i = 0; i < 45; i++) App.fleet.tickAll(1.0);
+  App.sim.simTick = 45;
+
+  wireUi();
+
+  // Initialize control states
+  $('#btn-play').textContent = App.sim.running ? '⏸' : '▶';
+  $('#sim-speed').value = String(App.sim.speed);
+  $('#roi-lift').value = String(App.ui.roiLift);
+  $('#roi-lift-val').textContent = fmtPct(App.ui.roiLift);
+  $('#btn-theme').textContent = document.body.classList.contains('theme-light') ? '🌙' : '☀️';
+
+  activateTab(App.ui.activeTab);
+  updateSimStatus();
+  requestAnimationFrame(tickLoop);
+}
+
+document.addEventListener('DOMContentLoaded', bootstrap);
+
+</script>
+</body>
+</html>

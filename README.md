@@ -16,7 +16,35 @@ can be plugged in incrementally without touching the dashboard or APIs.
 
 ---
 
-## Quick start
+## Standalone HTML — zero dependencies, share-friendly
+
+If you just want to **share, demo, or archive** the dashboard with no setup at all,
+open [`dashboard.html`](dashboard.html) directly in any modern browser. It is a
+single self-contained file (~88 KB) — **no server, no CDN, no install** required.
+
+- Double-click `dashboard.html`, host on any static path, email it, drop it on a USB stick.
+- All simulation, drift detection, dual failure models, alerts, A/B routing, ROI and
+  case-study analytics run in the browser via vanilla JavaScript and inline SVG charts.
+- State (config, feedback log, selection) persists to `localStorage` and can be shared
+  via the **🔗 Share link** button (encodes state into the URL hash).
+- Export full snapshot as JSON or fleet table as CSV. Print to PDF for hand-off reports.
+
+### Added capabilities (beyond the Flask version)
+
+- ▶ / ⏸ / ⏭ simulation controls with 1×–30× speed
+- Light / dark theme toggle
+- New **Maintenance** tab — TTF bucket grouping + service-window suggestions
+- Fleet table sorting, free-text search, and multi-vehicle **comparison overlay**
+- **Fault injection** controls on the vehicle drill-down (test scenarios on demand)
+- **Interactive ROI sliders** with live recompute
+- KPI **sparkline history** on the executive overview
+- **Toast notifications** for new critical alerts
+- **Regional rollup** table on executive overview
+- Snapshot **import / export** (JSON), fleet **CSV export**, **print-to-PDF** layout
+- Shareable URLs via hash-encoded state
+- localStorage persistence across sessions
+
+## Quick start (Flask version — for live HPC integration)
 
 ```bash
 pip install -r requirements.txt
