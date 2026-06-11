@@ -189,6 +189,17 @@ class BatteryThermalSubsystem(Subsystem):
         feats["coolant_flow_lpm"] = last_n[-1].actual["coolant_flow_lpm"]
         return feats
 
+    def override_scenario(self, vehicle_id: str, scenario: str,
+                          scenario_t0: float = 30.0, seed: int = 0) -> None:
+        """Public hook used by the case-study harness to pin a vehicle to a
+        specific failure scenario at a known onset time."""
+        if vehicle_id not in self._states:
+            self.reset(vehicle_id, seed=seed or (hash(vehicle_id) & 0xFFFFFFFF))
+        st = self._states[vehicle_id]
+        st.scenario = scenario
+        st.scenario_t0 = scenario_t0
+        st.rng = random.Random(seed or 0)
+
     # -- Internal helpers -------------------------------------------------
 
     def _pick_scenario(self, rng: random.Random) -> str:

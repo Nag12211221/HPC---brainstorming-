@@ -399,8 +399,9 @@ async function refresh() {
     if (state.activeTab === "fleet") return renderFleet();
     if (state.activeTab === "vehicle") return renderVehicle();
     if (state.activeTab === "casestudy") {
-      // only re-render on demand (button), but show empty state once
-      if (!$("#cs-twin").data) renderCaseStudy();
+      // Render once on first visit, then only on demand via the Run button.
+      const el = document.getElementById("cs-twin");
+      if (el && !el._fullData) renderCaseStudy();
       return;
     }
     if (state.activeTab === "ops") return renderModels();

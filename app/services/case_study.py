@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import random
 from typing import Dict, List
 
 from ..models.drift_detector import DriftDetector
@@ -19,11 +18,8 @@ def run_case_study(scenario: str = "coolant_pump_degrading",
     subsystem = BatteryThermalSubsystem()
     vid = "CASE-STUDY"
     subsystem.reset(vid, seed=seed)
-    # force the chosen scenario
-    state = subsystem._states[vid]  # noqa: SLF001 - intentional for case study
-    state.scenario = scenario
-    state.scenario_t0 = 30.0
-    state.rng = random.Random(seed)
+    # pin the scenario via the subsystem's public override hook
+    subsystem.override_scenario(vid, scenario=scenario, scenario_t0=30.0, seed=seed)
 
     detectors = {v: DriftDetector(alpha=0.15) for v in ("baseline_v1", "ewma_plus_v2")}
     series: List[Dict[str, object]] = []

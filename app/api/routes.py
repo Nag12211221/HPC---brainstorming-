@@ -62,8 +62,10 @@ def patch_config() -> Any:
     patch = request.get_json(force=True, silent=True) or {}
     try:
         return jsonify(CONFIG.update(patch))
-    except (KeyError, ValueError, TypeError) as exc:
-        return jsonify({"error": str(exc)}), 400
+    except KeyError:
+        return jsonify({"error": "unknown configuration key"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid configuration value"}), 400
 
 
 # -- Fleet & vehicles --------------------------------------------------------
