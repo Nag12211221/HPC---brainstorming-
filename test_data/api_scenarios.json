@@ -1,0 +1,174 @@
+{
+  "test_type": "api_integration_scenarios",
+  "num_scenarios": 5,
+  "generated_at": "2026-06-11T18:30:00Z",
+  "scenarios": [
+    {
+      "scenario_name": "Fleet-Wide Monitoring Dashboard Load",
+      "description": "Simulates a fleet operator loading the executive dashboard with 200 vehicles",
+      "api_calls": [
+        {
+          "method": "GET",
+          "path": "/api/fleet",
+          "expected_status": 200,
+          "expected_response_fields": [
+            "fleet_size",
+            "vehicles"
+          ],
+          "max_response_time_ms": 300
+        },
+        {
+          "method": "GET",
+          "path": "/api/roi?fleet_size=200&detection_lift_pct=35",
+          "expected_status": 200,
+          "expected_response_fields": [
+            "annual_warranty_savings_usd",
+            "total_annual_savings_usd"
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/api/alerts",
+          "expected_status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/reports/executive?format=json",
+          "expected_status": 200
+        }
+      ]
+    },
+    {
+      "scenario_name": "Vehicle Drill-Down with Prediction",
+      "description": "Operator investigates a specific flagged vehicle",
+      "api_calls": [
+        {
+          "method": "GET",
+          "path": "/api/vehicles/VIN-0001?window=60",
+          "expected_status": 200,
+          "expected_response_fields": [
+            "vin",
+            "telemetry",
+            "prediction",
+            "drift"
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/api/alerts/1/ack",
+          "expected_status": 200
+        }
+      ]
+    },
+    {
+      "scenario_name": "A/B Model Comparison",
+      "description": "Data scientist evaluates model performance and adjusts split",
+      "api_calls": [
+        {
+          "method": "GET",
+          "path": "/api/models",
+          "expected_status": 200,
+          "expected_response_fields": [
+            "models",
+            "active"
+          ]
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/models/ab_split",
+          "body": {
+            "baseline_v1": 0.3,
+            "ewma_plus_v2": 0.7
+          },
+          "expected_status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/models/activate",
+          "body": {
+            "version": "ewma_plus_v2"
+          },
+          "expected_status": 200
+        }
+      ]
+    },
+    {
+      "scenario_name": "Customer Feedback and Retraining Loop",
+      "description": "Field engineer submits feedback triggering model retraining",
+      "api_calls": [
+        {
+          "method": "POST",
+          "path": "/api/feedback",
+          "body": {
+            "vin": "VIN-0005",
+            "subsystem": "battery_thermal",
+            "label": "true_positive",
+            "notes": "Confirmed pump degradation"
+          },
+          "expected_status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/feedback",
+          "body": {
+            "vin": "VIN-0012",
+            "subsystem": "battery_thermal",
+            "label": "false_positive",
+            "notes": "Sensor was replaced, readings normal"
+          },
+          "expected_status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/feedback/retrain",
+          "body": {
+            "new_version": "ewma_plus_v2.1"
+          },
+          "expected_status": 200,
+          "expected_response_fields": [
+            "version",
+            "samples_incorporated"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_name": "Configuration Hot-Update Under Load",
+      "description": "Platform admin adjusts thresholds while fleet is actively monitored",
+      "api_calls": [
+        {
+          "method": "GET",
+          "path": "/api/config",
+          "expected_status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/config",
+          "body": {
+            "drift_warn_score": 0.4,
+            "drift_critical_score": 0.7,
+            "failure_warn_prob": 0.3,
+            "failure_critical_prob": 0.6
+          },
+          "expected_status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/fleet",
+          "expected_status": 200,
+          "validation": "verify vehicles re-evaluated with new thresholds"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/config",
+          "body": {
+            "drift_warn_score": 0.45,
+            "drift_critical_score": 0.75
+          },
+          "expected_status": 200,
+          "validation": "restore defaults"
+        }
+      ]
+    }
+  ]
+}

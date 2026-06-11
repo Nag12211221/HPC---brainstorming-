@@ -1,0 +1,71 @@
+test_id,category,signal,test_value,description,expected_behavior
+EDGE-0000,boundary_value,pack_temp_c,-40.0,Boundary test: pack_temp_c = -40.0,nominal
+EDGE-0001,boundary_value,pack_temp_c,0.0,Boundary test: pack_temp_c = 0.0,nominal
+EDGE-0002,boundary_value,pack_temp_c,32.0,Boundary test: pack_temp_c = 32.0,nominal
+EDGE-0003,boundary_value,pack_temp_c,48.0,Boundary test: pack_temp_c = 48.0,warn
+EDGE-0004,boundary_value,pack_temp_c,58.0,Boundary test: pack_temp_c = 58.0,warn
+EDGE-0005,boundary_value,pack_temp_c,80.0,Boundary test: pack_temp_c = 80.0,warn
+EDGE-0006,boundary_value,pack_temp_c,120.0,Boundary test: pack_temp_c = 120.0,warn
+EDGE-0007,boundary_value,max_cell_temp_c,-40.0,Boundary test: max_cell_temp_c = -40.0,nominal
+EDGE-0008,boundary_value,max_cell_temp_c,0.0,Boundary test: max_cell_temp_c = 0.0,nominal
+EDGE-0009,boundary_value,max_cell_temp_c,35.0,Boundary test: max_cell_temp_c = 35.0,nominal
+EDGE-0010,boundary_value,max_cell_temp_c,50.0,Boundary test: max_cell_temp_c = 50.0,warn
+EDGE-0011,boundary_value,max_cell_temp_c,60.0,Boundary test: max_cell_temp_c = 60.0,warn
+EDGE-0012,boundary_value,max_cell_temp_c,85.0,Boundary test: max_cell_temp_c = 85.0,warn
+EDGE-0013,boundary_value,max_cell_temp_c,150.0,Boundary test: max_cell_temp_c = 150.0,warn
+EDGE-0014,boundary_value,coolant_delta_c,0.0,Boundary test: coolant_delta_c = 0.0,nominal
+EDGE-0015,boundary_value,coolant_delta_c,1.5,Boundary test: coolant_delta_c = 1.5,nominal
+EDGE-0016,boundary_value,coolant_delta_c,8.0,Boundary test: coolant_delta_c = 8.0,warn
+EDGE-0017,boundary_value,coolant_delta_c,14.0,Boundary test: coolant_delta_c = 14.0,warn
+EDGE-0018,boundary_value,coolant_delta_c,25.0,Boundary test: coolant_delta_c = 25.0,warn
+EDGE-0019,boundary_value,coolant_delta_c,50.0,Boundary test: coolant_delta_c = 50.0,warn
+EDGE-0020,boundary_value,coolant_flow_lpm,0.0,Boundary test: coolant_flow_lpm = 0.0,warn_low
+EDGE-0021,boundary_value,coolant_flow_lpm,0.5,Boundary test: coolant_flow_lpm = 0.5,warn_low
+EDGE-0022,boundary_value,coolant_flow_lpm,6.0,Boundary test: coolant_flow_lpm = 6.0,warn_low
+EDGE-0023,boundary_value,coolant_flow_lpm,12.0,Boundary test: coolant_flow_lpm = 12.0,nominal
+EDGE-0024,boundary_value,coolant_flow_lpm,15.0,Boundary test: coolant_flow_lpm = 15.0,nominal
+EDGE-0025,boundary_value,coolant_flow_lpm,25.0,Boundary test: coolant_flow_lpm = 25.0,nominal
+EDGE-0026,boundary_value,current_a,0.0,Boundary test: current_a = 0.0,nominal
+EDGE-0027,boundary_value,current_a,50.0,Boundary test: current_a = 50.0,nominal
+EDGE-0028,boundary_value,current_a,120.0,Boundary test: current_a = 120.0,nominal
+EDGE-0029,boundary_value,current_a,250.0,Boundary test: current_a = 250.0,over_current_warn
+EDGE-0030,boundary_value,current_a,300.0,Boundary test: current_a = 300.0,over_current_warn
+EDGE-0031,boundary_value,current_a,500.0,Boundary test: current_a = 500.0,over_current_warn
+EDGE-0032,boundary_value,pack_voltage_v,0.0,Boundary test: pack_voltage_v = 0.0,under_voltage_warn
+EDGE-0033,boundary_value,pack_voltage_v,200.0,Boundary test: pack_voltage_v = 200.0,under_voltage_warn
+EDGE-0034,boundary_value,pack_voltage_v,350.0,Boundary test: pack_voltage_v = 350.0,under_voltage_warn
+EDGE-0035,boundary_value,pack_voltage_v,400.0,Boundary test: pack_voltage_v = 400.0,nominal
+EDGE-0036,boundary_value,pack_voltage_v,420.0,Boundary test: pack_voltage_v = 420.0,nominal
+EDGE-0037,boundary_value,pack_voltage_v,500.0,Boundary test: pack_voltage_v = 500.0,nominal
+EDGE-0038,boundary_value,pack_voltage_v,800.0,Boundary test: pack_voltage_v = 800.0,nominal
+EDGE-0039,boundary_value,soc_pct,0.0,Boundary test: soc_pct = 0.0,critical_low_soc
+EDGE-0040,boundary_value,soc_pct,5.0,Boundary test: soc_pct = 5.0,critical_low_soc
+EDGE-0041,boundary_value,soc_pct,20.0,Boundary test: soc_pct = 20.0,warn_low_soc
+EDGE-0042,boundary_value,soc_pct,50.0,Boundary test: soc_pct = 50.0,nominal
+EDGE-0043,boundary_value,soc_pct,80.0,Boundary test: soc_pct = 80.0,nominal
+EDGE-0044,boundary_value,soc_pct,95.0,Boundary test: soc_pct = 95.0,nominal
+EDGE-0045,boundary_value,soc_pct,100.0,Boundary test: soc_pct = 100.0,nominal
+EDGE-0046,boundary_value,soc_pct,105.0,Boundary test: soc_pct = 105.0,nominal
+EDGE-0047,invalid_input,pack_temp_c,None,Null temperature,graceful_error_handling
+EDGE-0048,invalid_input,pack_temp_c,nan,NaN temperature,graceful_error_handling
+EDGE-0049,invalid_input,pack_temp_c,inf,Infinite temperature,graceful_error_handling
+EDGE-0050,invalid_input,pack_temp_c,-273.16,Below absolute zero,graceful_error_handling
+EDGE-0051,invalid_input,current_a,-50.0,Negative current (regen),graceful_error_handling
+EDGE-0052,invalid_input,current_a,None,Null current,graceful_error_handling
+EDGE-0053,invalid_input,soc_pct,-10.0,Negative SoC,graceful_error_handling
+EDGE-0054,invalid_input,soc_pct,200.0,SoC > 100%,graceful_error_handling
+EDGE-0055,invalid_input,coolant_flow_lpm,-5.0,Negative flow,graceful_error_handling
+EDGE-0056,invalid_input,coolant_flow_lpm,0.0,Zero flow (pump failure),graceful_error_handling
+EDGE-0057,invalid_input,pack_voltage_v,0.0,Zero voltage (disconnect),graceful_error_handling
+EDGE-0058,invalid_input,pack_voltage_v,-100.0,Negative voltage (error),graceful_error_handling
+EDGE-0059,invalid_input,all,None,All signals null (total dropout),graceful_error_handling
+EDGE-0060,invalid_input,timestamp,-1.0,Negative timestamp,graceful_error_handling
+EDGE-0061,invalid_input,timestamp,0.0,Zero timestamp,graceful_error_handling
+EDGE-0062,invalid_input,vehicle_id,,Empty vehicle ID,graceful_error_handling
+EDGE-0063,invalid_input,vehicle_id,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,Extremely long VIN,graceful_error_handling
+EDGE-0064,invalid_input,vehicle_id,'; DROP TABLE vehicles;--,SQL injection attempt,graceful_error_handling
+EDGE-0065,invalid_input,vehicle_id,<script>alert(1)</script>,XSS attempt,graceful_error_handling
+EDGE-0066,state_transition,scenario,nominal -> coolant_pump_degrading,Sudden pump failure,detect_transition_within_5_minutes
+EDGE-0067,state_transition,scenario,nominal -> cell_imbalance,Sudden cell imbalance,detect_transition_within_5_minutes
+EDGE-0068,state_transition,scenario,coolant_pump_degrading -> nominal,Pump recovery (maintenance),detect_transition_within_5_minutes
+EDGE-0069,state_transition,scenario,cell_imbalance -> coolant_pump_degrading,Cascading failure,detect_transition_within_5_minutes
